@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Home</title>
+    <link rel="stylesheet"
+          href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+          integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
+          crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons"
+          rel="stylesheet">
+    <link href="css/selectize.bootstrap4.css"
+          type="text/css"
+          rel="stylesheet"/>
+    <style type="text/css">
+        i {
+            vertical-align: middle; !important;
+        }
+    </style>
+</head>
+<body style="background-color: #fcfcfc">
+<div class="container">
+    <div class="row mt-3 mb-2">
+        <div class="col-9 mt-auto">
+            <h2>ANU Degree Planner
+            </h2>
+        </div>
+        <div class="col-3 text-right mt-auto">
+            <small class="text-muted align-text-bottom"><em>Courses last updated <span id="coursesUpdated"></span></em></small>
+        </div>
+    </div>
+    <!--<div class="row">
+        <div class="col">
+            <div class="alert alert-dark" role="alert">
+                <strong>Welcome!</strong>
+            </div>
+        </div>
+    </div>-->
+    <div class="card">
+        <div class="card-body">
+            <div class="row">
+                <div class="col">
+                    <div class="alert alert-info alert-dismissible fade show" role="alert" id="getStartedAlert">
+                        <strong>Get Started</strong> Click "Add Year" below to add an academic year to your planner.
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <ul class="nav nav-tabs" id="navTabs" role="tablist">
+                        <li class="nav-item">
+                            <a class="nav-link active" id="navProgramTab" data-toggle="tab" href="#navProgramContent" role="tab" aria-controls="navProgramContent" aria-selected="true">Program</a>
+                        </li>
+                        <li class="nav-item" id="tabNavPrepend">
+                            <a class="nav-link" id="add-year" href="javascript:void(0)">Add Year
+                                <i class="material-icons ">
+                                    add
+                                </i>
+                            </a>
+                        </li>
+                    </ul>
+                    <div class="tab-content" id="tabContents">
+                        <div class="tab-pane active" id="navProgramContent" role="tabpanel" aria-labelledby="navProgramTab">
+                            <div class="row mt-3">
+                                <div class="col">
+                                    <div class="form-group row">
+                                        <label for="courseName" class="col-form-label col-sm-2">Name</label>
+                                        <div class="col-sm-4">
+                                            <input class="form-control" type="text" id="courseName"/>
+                                        </div>
+                                    </div>
+                                    <div class="form-group row">
+                                        <label for="courseCareer" class="col-form-label col-sm-2">Program Level</label>
+                                        <div class="col-sm-4">
+                                            <select class="form-control" id="courseCareer">
+                                                <option>Undergraduate</option>
+                                                <option>Postgraduate</option>
+                                                <option>Research</option>
+                                                <option>Non-Award</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col">
+                                            <button class="btn btn-primary">Print Outline</button>
+                                            <button class="btn btn-success">Save/Load</button>
+                                            <button class="btn btn-danger">Reset</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <span class="d-none" id="tabContentPrepend"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <p><small>
+                This is an unofficial degree planner for the ANU, and therefore may have inaccuracies.
+                Always check Programs and Courses to make sure courses are actually available.
+            </small></p>
+
+        </div>
+    </div>
+</div>
+
+<!-- MODALS-->
+<div class="modal" tabindex="-1" role="dialog" id="courseSelectModal">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add course for <span id="courseSelectHeader"></span></h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <!--<div class="col-2">
+                        <div class="form-group">
+                            <label for="courseSelectYearSelect">Year</label>
+                            <select id="courseSelectYearSelect"></select>
+                        </div>
+                    </div>-->
+                    <div class="col-6">
+                        <div class="form-group">
+                            <label for="courseSelectSessionSelect">Session Filter</label>
+                            <select multiple class="form-control" id="courseSelectSessionSelect">
+                                <option>First Semester</option>
+                                <option>Second Semester</option>
+                                <option>Autumn</option>
+                                <option>Winter</option>
+                                <option>Spring</option>
+                                <option>Summer</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="form-group">
+                            <label for="courseSelectCodeSelect">Course Prefix Code</label>
+                            <select multiple class="form-control" id="courseSelectCodeSelect">
+                                <option>BIAN</option>
+                                <option>ENGL</option>
+                                <option>PREP</option>
+                                <option>ASGS</option>
+                                <option>MUSI</option>
+                                <option>HIST</option>
+                                <option>MGMT</option>
+                                <option>ARAB</option>
+                                <option>LING</option>
+                                <option>ANCH</option>
+                                <option>ECCO</option>
+                                <option>EXTN</option>
+                                <option>SCNC</option>
+                                <option>PHYS</option>
+                                <option>PSYC</option>
+                                <option>ANTH</option>
+                                <option>ABST</option>
+                                <option>ARTH</option>
+                                <option>EDUC</option>
+                                <option>DEMO</option>
+                                <option>ASIA</option>
+                                <option>ACCT</option>
+                                <option>INFS</option>
+                                <option>BUSN</option>
+                                <option>LEGW</option>
+                                <option>LANG</option>
+                                <option>ACST</option>
+                                <option>STAT</option>
+                                <option>LAWS</option>
+                                <option>MATH</option>
+                                <option>COMP</option>
+                                <option>PHIL</option>
+                                <option>GREK</option>
+                                <option>FINM</option>
+                                <option>EMSC</option>
+                                <option>BIOL</option>
+                                <option>ARCH</option>
+                                <option>FREN</option>
+                                <option>INDN</option>
+                                <option>ITAL</option>
+                                <option>JPNS</option>
+                                <option>LATN</option>
+                                <option>PERS</option>
+                                <option>CHEM</option>
+                                <option>SKRT</option>
+                                <option>CHIN</option>
+                                <option>HIND</option>
+                                <option>THAI</option>
+                                <option>SOCY</option>
+                                <option>SPAN</option>
+                                <option>ARTS</option>
+                                <option>STST</option>
+                                <option>ENGN</option>
+                                <option>ECON</option>
+                                <option>TURK</option>
+                                <option>MKTG</option>
+                                <option>IDEC</option>
+                                <option>CRIM</option>
+                                <option>ANUC</option>
+                                <option>POLS</option>
+                                <option>PASI</option>
+                                <option>POPH</option>
+                                <option>ARTV</option>
+                                <option>DART</option>
+                                <option>CHMD</option>
+                                <option>EMDV</option>
+                                <option>EMET</option>
+                                <option>MMIB</option>
+                                <option>INTR</option>
+                                <option>MEAS</option>
+                                <option>BUSI</option>
+                                <option>ECHI</option>
+                                <option>NSPO</option>
+                                <option>ASTR</option>
+                                <option>ENVS</option>
+                                <option>FILM</option>
+                                <option>INDG</option>
+                                <option>ANIP</option>
+                                <option>AUST</option>
+                                <option>GERM</option>
+                                <option>HUMN</option>
+                                <option>MUSC</option>
+                                <option>PAAE</option>
+                                <option>DESA</option>
+                                <option>PAAS</option>
+                                <option>POGO</option>
+                                <option>DIPL</option>
+                                <option>NEUR</option>
+                                <option>CRWF</option>
+                                <option>GEND</option>
+                                <option>CLAS</option>
+                                <option>MEDI</option>
+                                <option>COMM</option>
+                                <option>SCOM</option>
+                                <option>EURO</option>
+                                <option>PORT</option>
+                                <option>VCUG</option>
+                                <option>DEST</option>
+                                <option>HLTH</option>
+                                <option>HECN</option>
+                                <option>MEDN</option>
+                                <option>PUBH</option>
+                                <option>GMTH</option>
+                                <option>SOCS</option>
+                                <option>EAST</option>
+                                <option>VIET</option>
+                                <option>ESEN</option>
+                                <option>HONS</option>
+                                <option>FORA</option>
+                                <option>EXCH</option>
+                                <option>INFT</option>
+                                <option>GRAD</option>
+                                <option>BURM</option>
+                                <option>KORE</option>
+                                <option>LEGL</option>
+                                <option>VCPG</option>
+                                <option>CCLT</option>
+                                <option>LLCC</option>
+                                <option>VISC</option>
+                                <option>POPM</option>
+                                <option>JAVA</option>
+                                <option>MNGL</option>
+                                <option>MUSM</option>
+                                <option>SOCR</option>
+                                <option>PLST</option>
+                                <option>POPS</option>
+                                <option>RUSS</option>
+                                <option>URDU</option>
+                                <option>HGEO</option>
+                                <option>SEAS</option>
+                                <option>TETM</option>
+                                <option>THES</option>
+                                <option>TIBN</option>
+                                <option>FSTY</option>
+                                <option>GEOG</option>
+                                <option>ECOS</option>
+                                <option>SRES</option>
+                                <option>UNSP</option>
+                                <option>TRAN</option>
+                                <option>GEOL</option>
+                                <option>ICOM</option>
+                                <option>SCCO</option>
+                                <option>CBEA</option>
+                                <option>DESN</option>
+                                <option>REGN</option>
+                                <option>PPEI</option>
+                                <option>WARS</option>
+                                <option>BAPA</option>
+                                <option>SCRN</option>
+                                <option>CECS</option>
+                                <option>CHST</option>
+                                <option>TOKP</option>
+                                <option>LEGM</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <div class="form-group">
+                            <label for="courseSelectCourseSelect">Course</label>
+                            <input class="form-control" id="courseSelectCourseSelect"></input>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-dismiss="modal" id="courseSelectModalAddBtn">Add course</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" id="courseSelectModalCancelBtn">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal" tabindex="-1" role="dialog" id="yearSelectModal">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div class="form-group">
+                    <!--<label for="newYearSelect">Year</label>-->
+                    <select class="form-control" id="newYearSelect">
+
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="newYearModalAddBtn" data-dismiss="modal">Add Year</button>
+                <button type="button" class="btn btn-danger" id="newYearModalCancelBtn" data-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal" tabindex="-1" role="dialog" id="sessionSelectModal">
+    <div class="modal-dialog modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div class="form-group">
+                    <select class="form-control" id="newSessionSelect">
+                        <option>First Semester</option>
+                        <option>Second Semester</option>
+                        <option>Autumn</option>
+                        <option>Winter</option>
+                        <option>Spring</option>
+                        <option>Summer</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="newSessionModalAddBtn" data-dismiss="modal">Add Session</button>
+                <button type="button" class="btn btn-danger" id="newSessionModalCancelBtn" data-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!--TEMPLATES-->
+<script type="text/html" id="yearTabContent-template">
+    <div class="tab-pane fade" id="year_<%=year%>-tab" role="tabpanel" aria-labelledby="year_<%=year%>-nav">
+        <div class="row">
+            <div class="col">
+                <button class="btn btn-success add-session btn-sm mt-3" data-year="<%=year%>">Add Session for <%=year%></button>
+                <div class="row" id="year-<%=year%>-sessions">
+
+                </div>
+            </div>
+        </div>
+    </div>
+</script>
+
+<script type="text/html" id="yearTabNav-template">
+    <li class="nav-item" id="year_<%=year%>-li">
+        <a class="nav-link" id="year_<%=year%>-nav" data-toggle="tab" href="#year_<%=year%>-tab" role="tab" aria-controls="year_<%=year%>-tab" aria-selected="false"><%=year%></a>
+    </li>
+</script>
+
+<script type="text/html" id="session-template">
+    <div class="col-6 mt-3">
+        <div class="session" id="<%=sessionID%>_<%=year%>">
+            <h5><%=session%></h5>
+            <div class="session-table">
+                <table class="table-hover table table-sm session-table">
+                    <thead>
+                    <tr>
+                        <th scope="col" style="width:15%">Code</th>
+                        <th scope="col"style="width:60%">Name</th>
+                        <th scope="col"style="width:10%">Units</th>
+                        <th scope="col" style="width:15%">Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="courseTablePrepend" data-session="<%=session%>" data-year="<%=year%>">
+                            <td class="add-course" colspan="4"><a href="javascript:void(0)">Add course
+                                <i class="material-icons">
+                                    playlist_add
+                                </i>
+                            </a></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <!--<button class="btn btn-primary add-course btn-sm" data-session="<%=session%>" data-year="<%=year%>">Add Course for <%=session%></button>-->
+        </div>
+    </div>
+</script>
+
+<script type="text/html" id="course-template">
+    <tr id="course_<%=code%>" courseId="<%=code%>">
+        <td scope="row"><%=code%></td>
+        <td><%=name%></td>
+        <td><%=units%></td>
+        <td>
+            <div class="btn-group btn-group-sm" role="group">
+                <button type="button" class="btn btn-primary">Prerequisites</button>
+                <button type="button" class="btn btn-danger">Remove</button>
+            </div>
+        </td>
+    </tr>
+</script>
+
+<script src="https://code.jquery.com/jquery-3.3.1.min.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.9.1/underscore-min.js"></script>
+<script src="js/store.modern.min.js" type="text/javascript"></script>
+<script src="js/selectize.min.js" type="text/javascript"></script>
+<script src="js/md5.min.js" type="text/javascript"></script>
+<script src="js/app.js" type="text/javascript"></script>
+</body>
+
+</html>

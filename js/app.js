@@ -161,9 +161,29 @@ class View {
             create: false,
             sortField: 'text'
         });
+
         this.courseModalSearchInit = this.courseModalSearchId.selectize({
             create: false,
-            maxItems: 1
+            searchField: ["code","name"],
+            maxItems: 1,
+            valueField: 'code',
+            labelField: 'name',
+            options: [
+                {code: "ENVS1001", name: "Environment and Society: Geography of Sustainability", level: "Undergraduate", session: ["First Semester"],units: "6",year:"2020"},
+                {code: "ENVS1003", name: "Introduction to Environmental and Social Research", level: "Undergraduate", session: ["First Semester"],units: "6",year:"2020"},
+                {code: "ENVS2001", name: "Biodiversity Science: Wildlife, Vegetation and Landscape Ecology", level: "Undergraduate", session: ["Second Semester"],units: "6",year:"2020"},
+                {code: "ENVS2322", name: "Environmental Science Field School", level: "Undergraduate", session: ["Winter"],units: "6",year:"2020"},
+            ],
+            render: {
+                item: (item, escape) => {
+                    return '<div class="mb-1">' +
+                        escape(item.code) + " " + escape(item.name) + '</div>';
+                },
+                option: (item, escape) => {
+                    return '<div>' +
+                        escape(item.code) + " " + escape(item.name) + '</div>';
+                }
+            }
         })
 
         this.courseModalSessionSelect = this.courseModalSessionSelectInit[0].selectize;
@@ -171,10 +191,6 @@ class View {
         this.courseModalSearchSelect = this.courseModalSearchInit[0].selectize;
 
         this.courseUpdateDate.html(coursesUpdated);
-    }
-
-    _initSelectize() {
-
     }
 
     setInputOptions(id, array, selected, sort) {

@@ -55,10 +55,7 @@
                             <a class="nav-link active" id="navProgramTab" data-toggle="tab" href="#navProgramContent" role="tab" aria-controls="navProgramContent" aria-selected="true">Program</a>
                         </li>
                         <li class="nav-item" id="tabNavPrepend">
-                            <a class="nav-link" id="add-year" href="javascript:void(0)">Add Year
-                                <i class="material-icons ">
-                                    add
-                                </i>
+                            <a class="nav-link" id="add-year" href="javascript:void(0)">Add Year +
                             </a>
                         </li>
                     </ul>
@@ -385,17 +382,17 @@
             <h5><%=session%></h5>
             <div class="session-table">
                 <table class="table-hover table table-sm session-table">
-                    <thead>
+                    <!--<thead>
                     <tr>
                         <th scope="col" style="width:15%">Code</th>
                         <th scope="col"style="width:60%">Name</th>
                         <th scope="col"style="width:10%">Units</th>
                         <th scope="col" style="width:15%">Actions</th>
                     </tr>
-                    </thead>
+                    </thead>-->
                     <tbody>
                         <tr class="courseTablePrepend" data-session="<%=session%>" data-year="<%=year%>">
-                            <td class="add-course" colspan="4"><a href="javascript:void(0)">Add course
+                            <td class="add-course" colspan="2"><a href="javascript:void(0)">Add course
                                 <i class="material-icons">
                                     playlist_add
                                 </i>
@@ -410,15 +407,12 @@
 </script>
 
 <script type="text/html" id="course-template">
-    <tr id="course_<%=code%>" courseId="<%=code%>">
-        <td scope="row"><%=code%></td>
-        <td><%=name%></td>
-        <td><%=units%></td>
-        <td>
-            <div class="btn-group btn-group-sm" role="group">
-                <button type="button" class="btn btn-primary">Prerequisites</button>
-                <button type="button" class="btn btn-danger">Remove</button>
-            </div>
+    <tr id="course_<%=code%>" data-coursecode="<%=code%>">
+        <th scope="row"><%=code%></th>
+        <td><%=name%> (<%=units%> units)
+            <button type="button" class="close" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
         </td>
     </tr>
 </script>

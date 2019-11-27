@@ -8,10 +8,6 @@ class Model {
     constructor() {
         this.save = {};
         this.prereqs = {};
-        if (store.get('model') != null) {
-            this.save = store.get('model');
-            $('#getStartedAlert').alert('close');
-        }
         this.loadData();
         this.courses = store.get('courses');
     }
@@ -32,16 +28,30 @@ class Model {
         }
     }
 
+    _commit() {
+        store.set('save',this.save);
+    }
+
     addNewYear(year) {
-        this.save[year] = new Year(year,[]);
+        /*this.save[year] = new Year(year,[]);*/
+        this.save[year] = {year: year, sessions: []};
+        this._commit();
     }
 
     addNewSession(year, session) {
-        this.save[year].addSession(new Session(session, []));
+        /*this.save[year].sessions.push(new Session(session, []));*/
+        this.save[year].sessions.push({type: session, courses: []});
+        this._commit();
     }
 
     addNewCourse(year, session, course) {
-        this.save[year]["sessions"][_.findIndex(this.save[year]["sessions"], {type: session})].addCourse(course);
+        this.save[year]["sessions"][_.findIndex(this.save[year]["sessions"], {type: session})].courses.push(course);
+        this._commit();
+    }
+
+    getCourseModel(year, course) {
+        let courseList = this.getCourseListForYear(year);
+        return courseList[_.findIndex(courseList,{code:course})];
     }
 
     yearExists(year) {
@@ -181,13 +191,16 @@ class View {
             valueField: 'code',
             labelField: 'name',
             render: {
-                item: (item, escape) => {
-                    return '<div class="mb-1">' +
-                        escape(item.code) + " " + escape(item.name) + '</div>';
+                item: (c, escape) => {
+                    return `<div><strong>${escape(c.code)}</strong> ${escape(c.name)}</div>`;
                 },
-                option: (item, escape) => {
-                    return '<div>' +
-                        escape(item.code) + " " + escape(item.name) + '</div>';
+                option: (c, escape) => {
+                    return `<div class="ml-2 my-1">
+                                <strong>${escape(c.code)}</strong>  ${escape(c.name)}
+                                <br/>
+                                <small><strong>Units: </strong> ${escape(c.units)}</small>
+                                <small><strong>Sessions: </strong> ${escape(c.session)}</small>
+                            </div>`;
                 }
             }
         })
@@ -241,8 +254,8 @@ class View {
         return $(`#year_${year}-nav`);
     }
 
-    addCourseToTable(year, session, course, code) {
-        this.getCourseTableId(year,session).before(this.courseTemplate({code: code, name: course["name"], units: course["units"]}));
+    addCourseToTable(year, session, course) {
+        this.getCourseTableId(year,session).before(this.courseTemplate({code: course.code, name: course.name, units: course.units}));
     }
 
     showYearTab(year) {
@@ -261,18 +274,31 @@ class Controller {
         this.currentSession = "First Semester";
 
         if (store.get('save') != null) {
-            m.save = store.get('save');
-            // update the viewer with the model
+            this.model.save = store.get('save');
+            this.loadSave(this.model.save);
+            $('#getStartedAlert').alert('close');
         }
-        this.registerEvents();
-        // Set
 
+        this.registerEvents();
+    }
+
+    loadSave(saveData) {
+        for (let year of Object.keys(saveData)) {
+            this.view.addNewYearTab(year);
+            for (let session of saveData[year].sessions) {
+                this.view.addSessionTable(year,session.type);
+                for (let course of session.courses) {
+                    this.view.addCourseToTable(year,session.type,this.model.getCourseModel(year,course));
+                }
+            }
+        }
     }
 
     registerEvents() {
 
         const courseFilterUpdate = function() {
             this.view.courseModalSearchSelect.clearOptions();
+            this.view.courseModalSearchSelect.clear(true);
             this.view.courseModalSearchSelect.addOption(this.model.getFilteredCourseList(
                 this.currentYear,
                 this.view.courseModalSessionSelect.items,
@@ -334,8 +360,6 @@ class Controller {
         this.view.courseModalCareerSelectId.on('change', courseFilterUpdate);
 
         $(document).on('click', '.add-course', (e)=> {
-            let year = $(e.target).closest('tr').data("year");
-            let session = $(e.target).closest('tr').data("session");
             this.currentYear = $(e.target).closest('tr').data("year");
             this.currentSession = $(e.target).closest('tr').data("session");
             this.view.courseModalHeader.html(this.currentSession + " " + this.currentYear);
@@ -345,10 +369,12 @@ class Controller {
             this.view.buttonCourseModalAdd.one('click', (e)=> {
                 this.view.courseModal.hide();
                 let newCourse = this.view.courseModalSearchSelect.items[0];
-                console.log(newCourse);
                 if (newCourse != null) {
-
+                    this.model.addNewCourse(this.currentYear,this.currentSession,newCourse);
+                    this.view.addCourseToTable(this.currentYear,this.currentSession,this.model.getCourseModel(this.currentYear,newCourse));
+                    this.view.courseModalSearchSelect.clear(true);
                     $(e.target).blur();
+                } else {
 
                 }
                 this.view.buttonCourseModalCancel.off('click');
@@ -361,25 +387,10 @@ class Controller {
     }
 }
 
-class Session {
-    constructor(type, courses) {
-        this.type = type;
-        this.courses = courses;
-    }
-
-    addCourse(course) {
-        this.courses.push(course);
-    }
-}
-
 class Year {
     constructor(year,sessions) {
         this.year = year;
         this.sessions = sessions;
-    }
-
-    addSession(s) {
-        this.sessions.push(s);
     }
 }
 

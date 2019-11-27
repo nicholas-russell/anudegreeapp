@@ -78,8 +78,6 @@
                                             <select class="form-control" id="courseCareer">
                                                 <option>Undergraduate</option>
                                                 <option>Postgraduate</option>
-                                                <option>Research</option>
-                                                <option>Non-Award</option>
                                             </select>
                                         </div>
                                     </div>
@@ -122,26 +120,20 @@
             </div>
             <div class="modal-body">
                 <div class="row">
-                    <!--<div class="col-2">
-                        <div class="form-group">
-                            <label for="courseSelectYearSelect">Year</label>
-                            <select id="courseSelectYearSelect"></select>
-                        </div>
-                    </div>-->
-                    <div class="col-6">
+                    <div class="col-4">
                         <div class="form-group">
                             <label for="courseSelectSessionSelect">Session Filter</label>
                             <select multiple class="form-control" id="courseSelectSessionSelect">
                                 <option>First Semester</option>
                                 <option>Second Semester</option>
-                                <option>Autumn</option>
-                                <option>Winter</option>
-                                <option>Spring</option>
-                                <option>Summer</option>
+                                <option>Autumn Session</option>
+                                <option>Winter Session</option>
+                                <option>Spring Session</option>
+                                <option>Summer Session</option>
                             </select>
                         </div>
                     </div>
-                    <div class="col-6">
+                    <div class="col-4">
                         <div class="form-group">
                             <label for="courseSelectCodeSelect">Course Prefix Code</label>
                             <select multiple class="form-control" id="courseSelectCodeSelect">
@@ -301,6 +293,15 @@
                             </select>
                         </div>
                     </div>
+                    <div class="col-4">
+                        <div class="form-group">
+                            <label for="courseSelectCareerSelect">Career Filter</label>
+                            <select multiple class="form-control" id="courseSelectCareerSelect">
+                                <option selected>Undergraduate</option>
+                                <option>Postgraduate</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
                 <div class="row">
                     <div class="col">
@@ -344,12 +345,7 @@
             <div class="modal-body">
                 <div class="form-group">
                     <select class="form-control" id="newSessionSelect">
-                        <option>First Semester</option>
-                        <option>Second Semester</option>
-                        <option>Autumn</option>
-                        <option>Winter</option>
-                        <option>Spring</option>
-                        <option>Summer</option>
+
                     </select>
                 </div>
             </div>

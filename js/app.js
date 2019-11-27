@@ -63,7 +63,7 @@ class Model {
 
     getNewSessionOptions(year) {
         let currentSessions = [];
-        const defaultSessions = ["First Semester","Second Semester","Summer","Winter","Autumn","Spring"];
+        const defaultSessions = ["First Semester","Second Semester","Summer Session","Winter Session","Autumn Session","Spring Session"];
 
         for (let s of this.save[year].sessions) {
             currentSessions.push(s.type);
@@ -75,13 +75,13 @@ class Model {
         return Object.keys(this.save);
     }
 
-    getFilteredCourseList(year, sessions, codes) {
+    getFilteredCourseList(year, sessions, codes, careers) {
         let courseArray = this.courses[year];
-        let rtn = courseArray.filter((c) => {
+        return courseArray.filter((c) => {
            return   (sessions.some((s) => c.session.includes(s)) || sessions.length === 0)
             &&      (codes.includes(c.code.substr(0,4)) || codes.length === 0)
+            &&      (careers.includes(c.level) || careers.length === 0);
         });
-        return rtn;
     }
 
     async getPrereq(year,code) {
@@ -132,6 +132,7 @@ class View {
 
         this.courseModalSessionSelectId = $('#courseSelectSessionSelect');
         this.courseModalFacultySelectId = $('#courseSelectCodeSelect');
+        this.courseModalCareerSelectId = $('#courseSelectCareerSelect');
         this.courseModalSearchId = $('#courseSelectCourseSelect');
         this.courseUpdateDate = $('#coursesUpdated');
 
@@ -161,19 +162,16 @@ class View {
             create: false,
             sortField: 'text'
         });
-
+        this.courseModalCareerSelectInit = this.courseModalCareerSelectId.selectize({
+            create: false,
+        });
         this.courseModalSearchInit = this.courseModalSearchId.selectize({
             create: false,
             searchField: ["code","name"],
             maxItems: 1,
+            sortField: 'code',
             valueField: 'code',
             labelField: 'name',
-            options: [
-                {code: "ENVS1001", name: "Environment and Society: Geography of Sustainability", level: "Undergraduate", session: ["First Semester"],units: "6",year:"2020"},
-                {code: "ENVS1003", name: "Introduction to Environmental and Social Research", level: "Undergraduate", session: ["First Semester"],units: "6",year:"2020"},
-                {code: "ENVS2001", name: "Biodiversity Science: Wildlife, Vegetation and Landscape Ecology", level: "Undergraduate", session: ["Second Semester"],units: "6",year:"2020"},
-                {code: "ENVS2322", name: "Environmental Science Field School", level: "Undergraduate", session: ["Winter"],units: "6",year:"2020"},
-            ],
             render: {
                 item: (item, escape) => {
                     return '<div class="mb-1">' +
@@ -188,6 +186,7 @@ class View {
 
         this.courseModalSessionSelect = this.courseModalSessionSelectInit[0].selectize;
         this.courseModalFacultySelect = this.courseModalFacultySelectInit[0].selectize;
+        this.courseModalCareerSelect = this.courseModalCareerSelectInit[0].selectize;
         this.courseModalSearchSelect = this.courseModalSearchInit[0].selectize;
 
         this.courseUpdateDate.html(coursesUpdated);
@@ -250,6 +249,9 @@ class Controller {
         this.model = m;
         this.view = v;
 
+        this.currentYear = 2020;
+        this.currentSession = "First Semester";
+
         if (store.get('save') != null) {
             m.save = store.get('save');
             // update the viewer with the model
@@ -260,7 +262,18 @@ class Controller {
     }
 
     registerEvents() {
-        this.view.buttonAddYear.on('click', (e)=> {
+
+        const courseFilterUpdate = function() {
+            this.view.courseModalSearchSelect.clearOptions();
+            this.view.courseModalSearchSelect.addOption(this.model.getFilteredCourseList(
+                this.currentYear,
+                this.view.courseModalSessionSelect.items,
+                this.view.courseModalFacultySelect.items,
+                this.view.courseModalCareerSelect.items
+            ));
+        }.bind(this);
+
+        this.view.buttonAddYear.on('click', ()=> {
             this.view.setInputOptions("#newYearSelect",this.model.getNewYearOptions(), currentYearOptions + "", false);
             this.view.yearModal.modal();
             this.view.buttonYearModalAdd.one('click', (e)=> {
@@ -308,26 +321,27 @@ class Controller {
             });
         });
 
-        $('#courseSelectSessionSelect').on('change', () => {
-            console.log($('#courseSelectSessionSelect').val());
-        });
-
-        $('#courseSelectCodeSelect').on('change', () => {
-            console.log($('#courseSelectCodeSelect').val());
-        });
+        this.view.courseModalSessionSelectId.on('change', courseFilterUpdate);
+        this.view.courseModalFacultySelectId.on('change', courseFilterUpdate);
+        this.view.courseModalCareerSelectId.on('change', courseFilterUpdate);
 
         $(document).on('click', '.add-course', (e)=> {
             let year = $(e.target).closest('tr').data("year");
             let session = $(e.target).closest('tr').data("session");
-            this.view.courseModalHeader.html(session + " " + year);
+            this.currentYear = $(e.target).closest('tr').data("year");
+            this.currentSession = $(e.target).closest('tr').data("session");
+            this.view.courseModalHeader.html(this.currentSession + " " + this.currentYear);
             this.view.courseModalSessionSelect.clear(true);
-            this.view.courseModalSessionSelect.addItem(session, false);
+            this.view.courseModalSessionSelect.addItem(this.currentSession, false);
             this.view.courseModal.modal();
             this.view.buttonCourseModalAdd.one('click', (e)=> {
                 this.view.courseModal.hide();
                 let newCourse = this.view.courseModalSearchSelect.items[0];
+                console.log(newCourse);
                 if (newCourse != null) {
+
                     $(e.target).blur();
+
                 }
                 this.view.buttonCourseModalCancel.off('click');
             });

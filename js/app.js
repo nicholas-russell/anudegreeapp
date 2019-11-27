@@ -76,12 +76,20 @@ class Model {
     }
 
     getFilteredCourseList(year, sessions, codes, careers) {
-        let courseArray = this.courses[year];
+        let courseArray = this.getCourseListForYear(year);
         return courseArray.filter((c) => {
            return   (sessions.some((s) => c.session.includes(s)) || sessions.length === 0)
             &&      (codes.includes(c.code.substr(0,4)) || codes.length === 0)
             &&      (careers.includes(c.level) || careers.length === 0);
         });
+    }
+
+    getCourseListForYear(year) {
+        if (year > currentYearOptions) {
+            return this.courses[currentYearOptions];
+        } else {
+            return this.courses[year];
+        }
     }
 
     async getPrereq(year,code) {

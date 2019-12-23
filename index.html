@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Home</title>
+    <title>ANU Degree Planner</title>
     <link rel="stylesheet"
           href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
           integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
@@ -16,27 +16,59 @@
         i {
             vertical-align: middle; !important;
         }
+        body {
+            background-color: #fcfcfc;
+        }
+        .more-options {
+            cursor: pointer;
+            color: #999999;
+        }
+        .summary-table {
+            font-size: 0.9em;
+        }
+        .summary-table td, .summary-table th {
+            padding: 10px;
+        }
+        .total {
+            font-style: italic;
+        }
+        .tab-pill {
+            padding-top: 0.2em;
+            padding-bottom: 0.2em;
+        }
+        input[type="number"] {
+            -webkit-appearance: textfield;
+            -moz-appearance: textfield;
+            appearance: textfield;
+            text-align: center;
+        }
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+        }
+        .wam-table {
+            font-size: 0.8em;
+        }
+        .wam-table td, .wam-table tb {
+            padding: 0 0.5em 0 0.5em;
+            vertical-align: middle;
+        }
+        .wam-table td input {
+            border-radius: 0;
+            border: none;
+        }
+        .wam-table tr td:nth-child(3), .wam-table tr td:nth-child(3) input {
+            background-color: #e6f0ff;
+        }
+        .wam-table td select {
+            border: none;
+            border-radius: none;
+        }
     </style>
 </head>
-<body style="background-color: #fcfcfc">
+<body>
 <div class="container">
-    <div class="row mt-3 mb-2">
-        <div class="col-9 mt-auto">
-            <h2>ANU Degree Planner
-            </h2>
-        </div>
-        <div class="col-3 text-right mt-auto">
-            <small class="text-muted align-text-bottom"><em>Courses last updated <span id="coursesUpdated"></span></em></small>
-        </div>
-    </div>
-    <!--<div class="row">
-        <div class="col">
-            <div class="alert alert-dark" role="alert">
-                <strong>Welcome!</strong>
-            </div>
-        </div>
-    </div>-->
-    <div class="card">
+    <div class="card mt-3">
         <div class="card-body">
             <div class="row">
                 <div class="col">
@@ -50,12 +82,30 @@
             </div>
             <div class="row">
                 <div class="col">
+                    <div class="d-flex flex-row justify-content-between align-items-baseline">
+                        <h3>ANU Degree Planner</h3>
+                        <small class="text-muted align-text-bottom"><em>Courses last updated <span id="coursesUpdated"></span></em></small>
+                    </div>
+                </div>
+            </div>
+            <div class="row mb-2">
+                <div class="col">
+                    <button class="btn btn-sm btn-outline-primary" id="unitSummaryBtn">Unit Summary</button>
+                    <button class="btn btn-sm btn-outline-primary" id="gpaBtn">Calculate GPA</button>
+                    <button class="btn btn-sm btn-outline-primary">Save/Print as PDF</button>
+                    <button class="btn btn-sm btn-outline-danger" id="resetDataBtn">Reset</button>
+
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
                     <ul class="nav nav-tabs" id="navTabs" role="tablist">
                         <li class="nav-item">
-                            <a class="nav-link active" id="navProgramTab" data-toggle="tab" href="#navProgramContent" role="tab" aria-controls="navProgramContent" aria-selected="true">Program</a>
+                            <a class="nav-link active" id="navProgramTab" data-toggle="tab" href="#navProgramContent" role="tab" aria-controls="navProgramContent" aria-selected="true">Overview</a>
                         </li>
                         <li class="nav-item" id="tabNavPrepend">
-                            <a class="nav-link" id="add-year" href="javascript:void(0)">Add Year +
+                            <a class="nav-link" id="add-year" href="javascript:void(0)">
+                                Add Year +
                             </a>
                         </li>
                     </ul>
@@ -63,28 +113,7 @@
                         <div class="tab-pane active" id="navProgramContent" role="tabpanel" aria-labelledby="navProgramTab">
                             <div class="row mt-3">
                                 <div class="col">
-                                    <div class="form-group row">
-                                        <label for="courseName" class="col-form-label col-sm-2">Name</label>
-                                        <div class="col-sm-4">
-                                            <input class="form-control" type="text" id="courseName"/>
-                                        </div>
-                                    </div>
-                                    <div class="form-group row">
-                                        <label for="courseCareer" class="col-form-label col-sm-2">Program Level</label>
-                                        <div class="col-sm-4">
-                                            <select class="form-control" id="courseCareer">
-                                                <option>Undergraduate</option>
-                                                <option>Postgraduate</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col">
-                                            <button class="btn btn-primary">Print Outline</button>
-                                            <button class="btn btn-success">Save/Load</button>
-                                            <button class="btn btn-danger">Reset</button>
-                                        </div>
-                                    </div>
+                                    <p>Your courses will be saved automatically to your local device.</p>
                                 </div>
                             </div>
                         </div>
@@ -98,14 +127,16 @@
         <div class="col">
             <p><small>
                 This is an unofficial degree planner for the ANU, and therefore may have inaccuracies.
-                Always check Programs and Courses to make sure courses are actually available.
+                Always check <a target="_blank" href="https://programsandcourses.anu.edu.au/">Programs and Courses</a> to make sure courses are actually available.
             </small></p>
 
         </div>
     </div>
 </div>
 
-<!-- MODALS-->
+<!-- <<<< MODALS >>>> -->
+
+<!-- COURSE SEARCH -->
 <div class="modal" tabindex="-1" role="dialog" id="courseSelectModal">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
@@ -116,6 +147,17 @@
                 </button>
             </div>
             <div class="modal-body">
+                <div class="row" id="courseSelectWarning">
+                    <div class="col">
+                        <div class="alert alert-info" role="alert">
+                            <strong>Warning:</strong> the ANU API does not have data available for this year yet, so
+                            it is relying on the last year that is available and may be inaccurate as course offerings change.
+                            <br/>
+                            <small><em><a href="https://programsandcourses.anu.edu.au/" class="alert-link">Programs and Courses</a> may have data for
+                            this year in the offerings section. of a course.</em></small>
+                        </div>
+                    </div>
+                </div>
                 <div class="row">
                     <div class="col-4">
                         <div class="form-group">
@@ -308,6 +350,17 @@
                         </div>
                     </div>
                 </div>
+                <div class="row justify-content-center">
+                    <div class="col d-none" id="courseSelectReqText">
+                        <h6>Requirements</h6>
+                        <span id="requirementsText"></span>
+                    </div>
+                    <div class="col-auto d-none" id="courseSelectReqSpinner">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="sr-only">Loading...</span>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-primary" data-dismiss="modal" id="courseSelectModalAddBtn">Add course</button>
@@ -336,6 +389,225 @@
     </div>
 </div>
 
+<div class="modal" tabindex="-1" role="dialog" id="gpaModal">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col">
+                        <div class="row justify-content-center">
+                            <div class="col-auto">
+                                <ul class="nav nav-pills mb-3" role="tablist">
+                                    <li class="nav-item">
+                                        <a class="nav-link tab-pill" id="pills-manual-tab" data-toggle="pill" href="#pills-manual" role="tab" aria-selected="false">GPA</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link tab-pill active" id="pills-course-tab" data-toggle="pill" href="#pills-course" role="tab" aria-selected="true">WAM</a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="tab-content">
+                            <div class="tab-pane fade" id="pills-manual" role="tabpanel" aria-labelledby="pills-manual-tab">
+                                <div class="row">
+                                    <div class="col-8 mr-0">
+                                        <div class="form-group row">
+                                            <label for="gpaModalEntryHD" class="col-2 col-form-label" data-toggle="tooltip" data-placement="left" data-title="High Distinction (80-100)">HD</label>
+                                            <div class="col-6">
+                                                <div class="input-group">
+                                                    <div class="input-group-prepend">
+                                                        <button class="btn btn-outline-secondary input-num-control" type="button" data-for="gpaModalEntryHD" data-action="inc">+</button>
+                                                    </div>
+                                                    <input class="form-control gpa-unit-entry" type="number" min="0" step="6" value="0" id="gpaModalEntryHD">
+                                                    <div class="input-group-append">
+                                                        <button class="btn btn-outline-secondary input-num-control" type="button" data-for="gpaModalEntryHD" data-action="dec">-</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <label for="gpaModalEntryHD" class="col-4 col-form-label course-label"></label>
+                                        </div>
+                                        <div class="form-group row">
+                                            <label for="gpaModalEntryD" class="col-2 col-form-label" data-toggle="tooltip" data-placement="left" data-title="Distinction (70-79)">D</label>
+                                            <div class="col-6">
+                                                <div class="input-group">
+                                                    <div class="input-group-prepend">
+                                                        <button class="btn btn-outline-secondary input-num-control" type="button" data-for="gpaModalEntryD" data-action="inc">+</button>
+                                                    </div>
+                                                    <input class="form-control gpa-unit-entry" type="number" min="0" step="6" value="0" id="gpaModalEntryD">
+                                                    <div class="input-group-append">
+                                                        <button class="btn btn-outline-secondary input-num-control" type="button" data-for="gpaModalEntryD" data-action="dec">-</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <label for="gpaModalEntryD" class="col-4 col-form-label course-label"></label>
+                                        </div>
+                                        <div class="form-group row">
+                                            <label for="gpaModalEntryC" class="col-2 col-form-label" data-toggle="tooltip" data-placement="left" data-title="Credit (60-69)">C</label>
+                                            <div class="col-6">
+                                                <div class="input-group">
+                                                    <div class="input-group-prepend">
+                                                        <button class="btn btn-outline-secondary input-num-control" type="button" data-for="gpaModalEntryC" data-action="inc">+</button>
+                                                    </div>
+                                                    <input class="form-control gpa-unit-entry" type="number" min="0" step="6" value="0" id="gpaModalEntryC">
+                                                    <div class="input-group-append">
+                                                        <button class="btn btn-outline-secondary input-num-control" type="button" data-for="gpaModalEntryC" data-action="dec">-</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <label for="gpaModalEntryC" class="col-4 col-form-label course-label"></label>
+                                        </div>
+                                        <div class="form-group row">
+                                            <label for="gpaModalEntryP" class="col-2 col-form-label"  data-toggle="tooltip" data-placement="left" data-title="Pass (50-59) and PS">P</label>
+                                            <div class="col-6">
+                                                <div class="input-group">
+                                                    <div class="input-group-prepend">
+                                                        <button class="btn btn-outline-secondary input-num-control" type="button" data-for="gpaModalEntryP" data-action="inc">+</button>
+                                                    </div>
+                                                    <input class="form-control gpa-unit-entry" type="number" min="0" step="6" value="0" id="gpaModalEntryP">
+                                                    <div class="input-group-append">
+                                                        <button class="btn btn-outline-secondary input-num-control" type="button" data-for="gpaModalEntryP" data-action="dec">-</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <label for="gpaModalEntryP" class="col-4 col-form-label course-label"></label>
+                                        </div>
+                                        <div class="form-group row">
+                                            <label for="gpaModalEntryF" class="col-2 col-form-label" data-toggle="tooltip" data-placement="left" data-title="Fail (0-49) and NCN, WN">N</label>
+                                            <div class="col-6">
+                                                <div class="input-group">
+                                                    <div class="input-group-prepend">
+                                                        <button class="btn btn-outline-secondary input-num-control" type="button" data-for="gpaModalEntryF" data-action="inc">+</button>
+                                                    </div>
+                                                    <input class="form-control gpa-unit-entry" type="number" min="0" step="6" value="0" id="gpaModalEntryF">
+                                                    <div class="input-group-append">
+                                                        <button class="btn btn-outline-secondary input-num-control" type="button" data-for="gpaModalEntryF" data-action="dec">-</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <label for="gpaModalEntryF" class="col-4 col-form-label course-label"></label>
+                                        </div>
+                                        <div class="row d-none" id="gpaModalWarning">
+                                            <div class="col">
+                                                <p class="text-danger">Units need to be multiples of 6</p>
+                                            </div>
+                                        </div>
+                                        <div class="form-group row">
+                                            <div class="col-2">
+                                                <strong>Totals</strong>
+                                            </div>
+                                            <div class="col-6 text-center">
+                                                <span id="gpaModalTotalUnits">0</span>
+                                            </div>
+                                            <div class="col-4">
+                                                <span id="gpaModalTotalCourses"></span>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col">
+                                                <p><small>Excluded: WD, WL, CRS, HLP, DA, PX, RP, WA, WF, EE, STI, STE</small></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-4 ml-0">
+                                        <div class="row justify-content-center">
+                                            <div class="col-auto text-center">
+                                                <h3>GPA</h3>
+                                                <h1 id="gpaModalManualGrade">0.000</h1>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade show active" id="pills-course" role="tabpanel" aria-labelledby="pills-course-tab">
+                                <div class="row mb-2">
+                                    <div class="col-3 text-center">
+                                        <h5 class="m-0">GPA</h5>
+                                        <h1>0.000</h1>
+                                    </div>
+                                    <div class="col-3 text-center">
+                                        <h5 class="m-0">WAM</h5>
+                                        <h1>0.00</h1>
+                                    </div>
+                                    <div class="col-6 my-auto">
+                                        <div class="custom-control custom-checkbox">
+                                            <input type="checkbox" class="custom-control-input" id="wamModalExcl1000">
+                                            <label class="custom-control-label" for="wamModalExcl1000">Exclude 1000 level courses</label>
+                                        </div>
+                                        <div class="custom-control custom-checkbox">
+                                            <input class="custom-control-input" id="wamModalMode" type="checkbox">
+                                            <label class="custom-control-label" for="wamModalMode">Manual entry</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row overflow-auto" style="height: 400px">
+                                    <div class="col d-none" id="wamModalAutoTable">
+                                        <table class="table table-sm table-bordered wam-table" id="wamTable">
+                                            <thead>
+                                                <tr>
+                                                    <th scope="col" style="width: 6%">Code</th>
+                                                    <th scope="col" style="width: 74%">Name</th>
+                                                    <th scope="col" style="width: 12%">Mark</th>
+                                                    <th scope="col" style="width: 8%">Grade</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="col" id="wamModalManualTable">
+                                        <table class="table table-sm table-bordered wam-table" id="wamTableManual">
+                                            <thead>
+                                            <tr>
+                                                <th scope="col">Level</th>
+                                                <th scope="col">Units</th>
+                                                <th scope="col">Mark</th>
+                                                <th scope="col">Grade</th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td class="p-0">
+                                                        <select class="form-control-sm form-control">
+                                                            <option>1000</option>
+                                                            <option>2000+</option>
+                                                        </select>
+                                                    </td>
+                                                    <td class="p-0">
+                                                        <select class="form-control-sm form-control">
+                                                            <option>6</option>
+                                                            <option>12</option>
+                                                        </select>
+                                                    </td>
+                                                    <td class="p-0">
+                                                        <input max="100" min="0" type="number" class="form-control form-control-sm wam-mark-input" value="<%=mark%>"/>
+                                                    </td>
+                                                    <td>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td colspan="4"><a href="javascript:void(0)">Add course
+                                                        <i class="material-icons">
+                                                            playlist_add
+                                                        </i>
+                                                    </a></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-primary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SESSION SELECT -->
 <div class="modal" tabindex="-1" role="dialog" id="sessionSelectModal">
     <div class="modal-dialog modal-sm" role="document">
         <div class="modal-content">
@@ -354,14 +626,68 @@
     </div>
 </div>
 
-
+<div class="modal" tabindex="-1" role="dialog" id="unitSummaryModal">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Unit Summary</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="row justify-content-center">
+                    <div class="col-auto text-center">
+                        <div class="row justify-content-center">
+                            <div class="col-auto">
+                                <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
+                                    <li class="nav-item">
+                                        <a class="nav-link active tab-pill" id="pills-code-tab" data-toggle="pill" href="#pills-code" role="tab" aria-controls="pills-home" aria-selected="true">Code</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link tab-pill" id="pills-session-tab" data-toggle="pill" href="#pills-session" role="tab" aria-controls="pills-profile" aria-selected="false">Session</a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="tab-content" id="pills-tabContent">
+                            <div class="tab-pane fade show active" id="pills-code" role="tabpanel" aria-labelledby="pills-manual-tab">
+                                <div class="row justify-content-center">
+                                    <div class="col-auto text-center">
+                                        <div class="table-responsive text-center">
+                                            <table class="table table-sm summary-table table-bordered" id="unitSummaryCodes"></table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade" id="pills-session" role="tabpanel" aria-labelledby="pills-course-tab">
+                                <div class="row justify-content-center">
+                                    <div class="col-auto text-center">
+                                        <div class="table-responsive text-center">
+                                            <table class="table table-sm summary-table table-bordered" id="unitSummarySessions"></table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--<div class="modal-footer">
+                <button type="button" class="btn btn-outline-primary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-outline-primary">Print</button>
+            </div>-->
+        </div>
+    </div>
+</div>
 
 <!--TEMPLATES-->
 <script type="text/html" id="yearTabContent-template">
     <div class="tab-pane fade" id="year_<%=year%>-tab" role="tabpanel" aria-labelledby="year_<%=year%>-nav">
         <div class="row">
-            <div class="col">
-                <button class="btn btn-success add-session btn-sm mt-3" data-year="<%=year%>">Add Session for <%=year%></button>
+            <div class="col mt-3">
+                <button class="btn btn-outline-success add-session btn-sm" data-year="<%=year%>">Add Session for <%=year%></button>
+                <button class="btn btn-outline-danger removeYear btn-sm" data-year="<%=year%>">Remove <%=year%></button>
                 <div class="row" id="year-<%=year%>-sessions">
 
                 </div>
@@ -377,19 +703,21 @@
 </script>
 
 <script type="text/html" id="session-template">
-    <div class="col-6 mt-3">
-        <div class="session" id="<%=sessionID%>_<%=year%>">
-            <h5><%=session%></h5>
+    <div class="col-6 mt-3 session" id="<%=year%>_<%=sessionID%>" data-year="<%=year%>" data-session="<%=session%>">
+            <div class="d-flex justify-content-center align-items-baseline">
+                <h6><%=session%></h6>
+                <div class="dropdown">
+                    <i class="material-icons more-options" id="<%=year%>_<%=session%>_options" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        more_vert
+                    </i>
+
+                    <div class="dropdown-menu" aria-labelledby="<%=year%>_<%=session%>_options">
+                        <small><a class="dropdown-item removeSession" href="#">Remove</a></small>
+                    </div>
+                </div>
+            </div>
             <div class="session-table">
                 <table class="table-hover table table-sm session-table">
-                    <!--<thead>
-                    <tr>
-                        <th scope="col" style="width:15%">Code</th>
-                        <th scope="col"style="width:60%">Name</th>
-                        <th scope="col"style="width:10%">Units</th>
-                        <th scope="col" style="width:15%">Actions</th>
-                    </tr>
-                    </thead>-->
                     <tbody>
                         <tr class="courseTablePrepend" data-session="<%=session%>" data-year="<%=year%>">
                             <td class="add-course" colspan="2"><a href="javascript:void(0)">Add course
@@ -401,19 +729,36 @@
                     </tbody>
                 </table>
             </div>
-            <!--<button class="btn btn-primary add-course btn-sm" data-session="<%=session%>" data-year="<%=year%>">Add Course for <%=session%></button>-->
-        </div>
     </div>
 </script>
 
 <script type="text/html" id="course-template">
-    <tr id="course_<%=code%>" data-coursecode="<%=code%>">
+    <tr id="<%=year%>_<%=sessionCode%>_<%=code%>" data-year="<%=year%>" data-session="<%=session%>" data-course="<%=code%>">
         <th scope="row"><%=code%></th>
-        <td><%=name%> (<%=units%> units)
-            <button type="button" class="close" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-            </button>
+        <td><%=name%> (<%=units%> units)</td>
+        <td>
+            <div class="dropdown">
+                <i class="material-icons more-options" id="<%=year%>_<%=session%>_<%=code%>_options" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    more_vert
+                </i>
+                <div class="dropdown-menu" aria-labelledby="<%=year%>_<%=session%>_<%=code%>_options">
+                    <small><a target="_blank" class="dropdown-item" href="https://programsandcourses.anu.edu.au/<%=dataYear%>/course/<%=code%>">Programs and Courses</a></small>
+                    <small><a class="dropdown-item removeCourse" href="#">Remove</a></small>
+                </div>
+            </div>
+
         </td>
+    </tr>
+</script>
+
+<script id="wamRowTemplate" type="text/html">
+    <tr data-course="<%=code%>" data-index="<%=index%>">
+        <td><%=code%></td>
+        <td><%=name%> (<%=units%> units)</td>
+        <td class="p-0">
+            <input max="100" min="0" type="number" class="form-control form-control-sm wam-mark-input" value="<%=mark%>"/>
+        </td>
+        <td class="text-center"><span><%=grade%></span></td>
     </tr>
 </script>
 

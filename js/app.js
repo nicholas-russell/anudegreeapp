@@ -266,8 +266,34 @@ class Model {
         }
     }
 
-    getMinimumGrades() {
-        // recurses over list
+    getMinimumGrades(grades,goalGpa,currentGpa,unitsCompleted, unitsAvailable) {
+        let gpa = (this.calculateGPA(grades)*unitsAvailable + (currentGpa*unitsCompleted))/(unitsAvailable + unitsCompleted);
+        if (gpa >= goalGpa) {
+            return {gpa: gpa, grades: grades, result: true};
+        } else if (grades[0] === unitsAvailable) {
+            return {gpa: gpa, grades: grades, result: false};
+        } else {
+            let w = 0;
+            $.each(grades, (i,e)=>{
+                if (e !== 0) {
+                    if (i === 4) {
+                        w = i;
+                        return false;
+                    } else if (grades[i+1] === 0) {
+                        w = i;
+                        return false;
+                    } else {
+                        return true;
+                    }
+                }
+            });
+            if (w !== 0) {
+                grades[w]--;
+                grades[w-1]++;
+            }
+            return this.getMinimumGrades(grades,goalGpa,currentGpa,unitsCompleted,unitsAvailable);
+        }
+
     }
 
 }

@@ -522,11 +522,11 @@
                                 <div class="row mb-2">
                                     <div class="col-3 text-center">
                                         <h5 class="m-0">GPA</h5>
-                                        <h1>0.000</h1>
+                                        <h1 id="wamModalGPA">0.000</h1>
                                     </div>
                                     <div class="col-3 text-center">
                                         <h5 class="m-0">WAM</h5>
-                                        <h1>0.00</h1>
+                                        <h1 id="wamModalWAM">0.00</h1>
                                     </div>
                                     <div class="col-6 my-auto">
                                         <div class="custom-control custom-checkbox">
@@ -534,13 +534,13 @@
                                             <label class="custom-control-label" for="wamModalExcl1000">Exclude 1000 level courses</label>
                                         </div>
                                         <div class="custom-control custom-checkbox">
-                                            <input class="custom-control-input" id="wamModalMode" type="checkbox">
-                                            <label class="custom-control-label" for="wamModalMode">Manual entry</label>
+                                            <input class="custom-control-input" id="wamModalEntryMode" type="checkbox">
+                                            <label class="custom-control-label" for="wamModalEntryMode">Manual entry</label>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="row overflow-auto" style="height: 400px">
-                                    <div class="col d-none" id="wamModalAutoTable">
+                                    <div class="col" id="wamModalAutoTable">
                                         <table class="table table-sm table-bordered wam-table" id="wamTable">
                                             <thead>
                                                 <tr>
@@ -554,7 +554,7 @@
                                             </tbody>
                                         </table>
                                     </div>
-                                    <div class="col" id="wamModalManualTable">
+                                    <div class="col d-none" id="wamModalManualTable">
                                         <table class="table table-sm table-bordered wam-table" id="wamTableManual">
                                             <thead>
                                             <tr>
@@ -567,29 +567,88 @@
                                             <tbody>
                                                 <tr>
                                                     <td class="p-0">
-                                                        <select class="form-control-sm form-control">
+                                                        <select class="form-control-sm form-control wam-table-input-level">
                                                             <option>1000</option>
                                                             <option>2000+</option>
                                                         </select>
                                                     </td>
                                                     <td class="p-0">
-                                                        <select class="form-control-sm form-control">
+                                                        <select class="form-control-sm form-control wam-table-input-unit">
                                                             <option>6</option>
                                                             <option>12</option>
                                                         </select>
                                                     </td>
                                                     <td class="p-0">
-                                                        <input max="100" min="0" type="number" class="form-control form-control-sm wam-mark-input" value="<%=mark%>"/>
+                                                        <input max="100" min="0" type="number" class="form-control form-control-sm wam-mark-input"/>
                                                     </td>
                                                     <td>
                                                     </td>
                                                 </tr>
                                                 <tr>
-                                                    <td colspan="4"><a href="javascript:void(0)">Add course
+                                                    <td class="p-0">
+                                                        <select class="form-control-sm form-control wam-table-input-level">
+                                                            <option>1000</option>
+                                                            <option>2000+</option>
+                                                        </select>
+                                                    </td>
+                                                    <td class="p-0">
+                                                        <select class="form-control-sm form-control wam-table-input-unit">
+                                                            <option>6</option>
+                                                            <option>12</option>
+                                                        </select>
+                                                    </td>
+                                                    <td class="p-0">
+                                                        <input max="100" min="0" type="number" class="form-control form-control-sm wam-mark-input"/>
+                                                    </td>
+                                                    <td>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="p-0">
+                                                        <select class="form-control-sm form-control wam-table-input-level">
+                                                            <option>1000</option>
+                                                            <option>2000+</option>
+                                                        </select>
+                                                    </td>
+                                                    <td class="p-0">
+                                                        <select class="form-control-sm form-control wam-table-input-unit">
+                                                            <option>6</option>
+                                                            <option>12</option>
+                                                        </select>
+                                                    </td>
+                                                    <td class="p-0">
+                                                        <input max="100" min="0" type="number" class="form-control form-control-sm wam-mark-input"/>
+                                                    </td>
+                                                    <td>
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td class="p-0">
+                                                        <select class="form-control-sm form-control wam-table-input-level">
+                                                            <option>1000</option>
+                                                            <option>2000+</option>
+                                                        </select>
+                                                    </td>
+                                                    <td class="p-0">
+                                                        <select class="form-control-sm form-control wam-table-input-unit">
+                                                            <option>6</option>
+                                                            <option>12</option>
+                                                        </select>
+                                                    </td>
+                                                    <td class="p-0">
+                                                        <input max="100" min="0" type="number" class="form-control form-control-sm wam-mark-input"/>
+                                                    </td>
+                                                    <td>
+                                                    </td>
+                                                </tr>
+                                                <tr id="wamModalTableMarker">
+                                                    <td colspan="4">
+                                                        <a id="wamModalManualAddCourse" href="javascript:void(0)">Add course
                                                         <i class="material-icons">
                                                             playlist_add
                                                         </i>
-                                                    </a></td>
+                                                        </a>
+                                                    </td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -752,13 +811,35 @@
 </script>
 
 <script id="wamRowTemplate" type="text/html">
-    <tr data-course="<%=code%>" data-index="<%=index%>">
+    <tr data-course="<%=code%>" data-session="<%=session%>" data-year="<%=year%>" data-units="<%=units%>">
         <td><%=code%></td>
         <td><%=name%> (<%=units%> units)</td>
         <td class="p-0">
             <input max="100" min="0" type="number" class="form-control form-control-sm wam-mark-input" value="<%=mark%>"/>
         </td>
         <td class="text-center"><span><%=grade%></span></td>
+    </tr>
+</script>
+
+<script id="wamRowManualTemplate" type="text/html">
+    <tr>
+        <td class="p-0 wam-table-input-level">
+            <select class="form-control-sm form-control">
+                <option>1000</option>
+                <option>2000+</option>
+            </select>
+        </td>
+        <td class="p-0">
+            <select class="form-control-sm form-control wam-table-input-unit">
+                <option>6</option>
+                <option>12</option>
+            </select>
+        </td>
+        <td class="p-0">
+            <input max="100" min="0" type="number" class="form-control form-control-sm wam-mark-input"/>
+        </td>
+        <td>
+        </td>
     </tr>
 </script>
 

@@ -7,6 +7,7 @@ const endYearOptions = 2025;
 const defaultSessions = ["First Semester","Second Semester","Summer Session","Winter Session","Autumn Session","Spring Session"];
 const orderedSessions = ["First Semester","Autumn Session","Winter Session","Second Semester","Spring Session","Summer Session"];
 const gradeMarks = [7,6,5,4,0];
+const gradeLabels = ["HD","D","C","P","N"];
 
 jQuery.fn.fadeOutAndRemove = function(speed){
     $(this).fadeOut(speed,function(){
@@ -18,8 +19,8 @@ class Model {
     constructor() {
         this.save = {};
         this.prereqs = {};
+
         this.loadData();
-        this.courses = store.get('courses');
         this.defaultSessions = ["First Semester","Second Semester","Summer Session","Winter Session","Autumn Session","Spring Session"];
         this.orderedSessions = ["First Semester","Autumn Session","Winter Session","Second Semester","Spring Session","Summer Session"];
     }
@@ -35,6 +36,7 @@ class Model {
                 });
                 console.log(`${name} loaded from JSON`);
             } else {
+                this.courses = store.get(name);
                 console.log(`${name} loaded from localstorage`);
             }
         }
@@ -42,6 +44,28 @@ class Model {
 
     _commit() {
         store.set('save',this.save);
+    }
+
+
+    setMark(mark, course, session, year) {
+        if (!this.save[year]["sessions"][_.findIndex(this.save[year]["sessions"], {type: session})].hasOwnProperty("marks")) {
+            this.save[year]["sessions"][_.findIndex(this.save[year]["sessions"], {type: session})].marks = {};
+        }
+        this.save[year]["sessions"][_.findIndex(this.save[year]["sessions"], {type: session})].marks[course] = mark;
+        this._commit();
+    }
+
+    getMark(course, session, year) {
+        let rtn = "";
+        if (this.save.hasOwnProperty(year)) {
+            let i = _.findIndex(this.save[year]["sessions"], {type: session});
+            if (i !== -1) { // session exists
+                if (this.save[year]["sessions"][i].hasOwnProperty("marks") && this.save[year]["sessions"][i].marks.hasOwnProperty(course)) {
+                    rtn = this.save[year]["sessions"][i].marks[course];
+                }
+            }
+        }
+        return rtn;
     }
 
     addNewYear(year) {
@@ -55,7 +79,6 @@ class Model {
     }
 
     addNewSession(year, session) {
-        /*this.save[year].sessions.push(new Session(session, []));*/
         this.save[year].sessions.push({type: session, courses: []});
         this._commit();
     }
@@ -215,6 +238,38 @@ class Model {
         });
         return (totalCourses === 0 ? "0.000" : (totalMarks/totalCourses).toFixed(3));
     }
+
+    calculateWam(marks) {
+        let sum = 0;
+        let size = marks.length;
+        _.each(marks, (e)=> {
+            sum += Number(e);
+        });
+        return (size === 0 ? "0.00" : (sum/size).toFixed(2));
+    }
+
+    getGradeFromMark(mark) {
+        if (mark >= 80) {
+            return gradeLabels[0];
+        } else if (mark >= 70 && mark < 80) {
+            return gradeLabels[1];
+        } else if (mark >= 60 && mark < 70) {
+            return gradeLabels[2];
+        } else if (mark >= 50 && mark <60) {
+            return gradeLabels[3];
+        } else if (mark < 50) {
+            return gradeLabels[4];
+        } else if (mark === "") {
+            return "";
+        } else {
+            return "Err";
+        }
+    }
+
+    getMinimumGrades() {
+        // recurses over list
+    }
+
 }
 
 class View {
@@ -224,6 +279,7 @@ class View {
         this.sessionTemplate = _.template($('#session-template').html());
         this.courseTemplate = _.template($('#course-template').html());
         this.wamRowTemplate = _.template($('#wamRowTemplate').html());
+        this.wamManualRowTemplate = _.template($('#wamRowManualTemplate').html());
 
         this.courseModalSessionSelectId = $('#courseSelectSessionSelect');
         this.courseModalFacultySelectId = $('#courseSelectCodeSelect');
@@ -494,13 +550,15 @@ class View {
             for (let session of data[year].sessions) {
                 for (let course of session.courses) {
                     let courseData = app.model.getCourseModel(year, course);
+                    let mark = app.model.getMark(course, session.type, year);
                     let data = {
                         code: course,
-                        index: i,
+                        year: year,
+                        session: session.type,
                         units: courseData.units,
                         name: courseData.name,
-                        mark: "",
-                        grade: ""
+                        mark: mark,
+                        grade: mark === "" ? "" : app.model.getGradeFromMark(mark)
                     };
                     $('#wamTable > tbody:last-child').append(this.wamRowTemplate(data));
                     i++;
@@ -510,6 +568,10 @@ class View {
         if (i === 0) {
             $('#wamTable > tbody:last-child').append("<tr><td colspan='4'>Add courses to your planner to calculate WAM</td></tr>");
         }
+    }
+
+    addRowToWamManualTable() {
+        $('#wamModalTableMarker').before(this.wamManualRowTemplate({}));
     }
 
 }
@@ -718,6 +780,7 @@ class Controller {
 
         $('#gpaBtn').on('click', ()=> {
             app.view.renderWamTable(app.model.save);
+            this.calculateWamGpa($('#wamModalEntryMode').is(':checked'), $('#wamModalExcl1000').is(':checked'));
             $('#gpaModal').modal();
         });
 
@@ -742,7 +805,6 @@ class Controller {
                     return $(e).val()/6;
                 }).get();
                 let grade = app.model.calculateGPA(gradeCounts);
-                console.log(grade);
                 $('#gpaModalManualGrade').text(grade);
             }
         });
@@ -765,9 +827,8 @@ class Controller {
             }
         });
 
-        $(document).on('change input', '.wam-mark-input', (e)=>{
+        $(document).on('input', '.wam-mark-input', (e)=>{
             let value = $(e.target).val();
-            console.log(value);
             if (value.length > 3) {
                 $(e.target).val(value.slice(0,3));
             }
@@ -777,7 +838,84 @@ class Controller {
             if (value < 0) {
                 $(e.target).val(0);
             }
+
+            if (value === "") {
+                $(e.target).parent().next().text("");
+            } else {
+                $(e.target).parent().next().text(app.model.getGradeFromMark(value));
+            }
+
+            if (!$('#wamModalEntryMode').is(':checked')) {
+                let year = $(e.target).closest("tr").data("year");
+                let session = $(e.target).closest("tr").data("session");
+                let course = $(e.target).closest("tr").data("course");
+                app.model.setMark(value,course,session,year);
+
+            }
+
+            this.calculateWamGpa($('#wamModalEntryMode').is(':checked'), $('#wamModalExcl1000').is(':checked'));
         });
+
+        $('#wamModalEntryMode').on('change', (e)=> {
+           if ($(e.target).is(':checked')) {
+               $('#wamModalManualTable').removeClass("d-none");
+               $('#wamModalAutoTable').addClass("d-none");
+           } else {
+               $('#wamModalManualTable').addClass("d-none");
+               $('#wamModalAutoTable').removeClass("d-none");
+           }
+           this.calculateWamGpa($('#wamModalEntryMode').is(':checked'), $('#wamModalExcl1000').is(':checked'));
+        });
+
+        $('#wamModalExcl1000, .wam-table-input-unit, .wam-table-input-level').on('change', ()=> {
+            this.calculateWamGpa($('#wamModalEntryMode').is(':checked'), $('#wamModalExcl1000').is(':checked'));
+        });
+
+        $('#wamModalManualAddCourse').on('click', ()=>{
+            app.view.addRowToWamManualTable();
+        })
+    }
+
+    calculateWamGpa(manual, fstYear) {
+        let marks = [];
+        let grades = [0,0,0,0,0];
+        if (manual) {
+            $('#wamTableManual .wam-mark-input').each((i,e)=>{
+                let x = $(e).val();
+                let l = $(e).closest("tr").find(".wam-table-input-level").val();
+                let u = $(e).closest("tr").find(".wam-table-input-unit").val();
+                if (x !== "") {
+                    if (fstYear && l === "1000") {
+                        return true;
+                    } else {
+                        for (let i = 0; i < u/6; i++) {
+                            marks.push(x);
+                        }
+                        grades[gradeLabels.indexOf(app.model.getGradeFromMark(x))] += u/6;
+                    }
+                }
+
+            });
+        } else {
+            $('#wamTable .wam-mark-input').each((i, e)=>{
+                let x = $(e).val();
+                let u = $(e).closest("tr").data('units');
+                let l = $(e).closest("tr").data('course').charAt(4);
+                if (x !== "") {
+                    if (fstYear && l === "1") {
+                        return true;
+                    } else {
+                        for (let i = 0; i < u/6; i++) {
+                            marks.push(x);
+                        }
+                        grades[gradeLabels.indexOf(app.model.getGradeFromMark(x))] += u/6;
+                    }
+                }
+            });
+        }
+
+        $('#wamModalGPA').text("").text(app.model.calculateGPA(grades));
+        $('#wamModalWAM').text("").text(app.model.calculateWam(marks));
     }
 }
 

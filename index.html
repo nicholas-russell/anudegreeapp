@@ -24,6 +24,9 @@
             cursor: pointer;
             color: #999999;
         }
+        .add-course {
+            cursor: pointer;
+        }
         .summary-table {
             font-size: 0.9em;
         }
@@ -820,12 +823,25 @@
             <div class="session-table">
                 <table class="table-hover table table-sm session-table">
                     <tbody>
-                        <tr class="courseTablePrepend" data-session="<%=session%>" data-year="<%=year%>">
-                            <td class="add-course" colspan="2"><a href="javascript:void(0)">Add course
+                        <!--<tr class="courseTablePrepend" data-session="<%=session%>" data-year="<%=year%>">
+                            <td class="add-course" colspan="2"><a href="#">Add course
                                 <i class="material-icons">
                                     playlist_add
                                 </i>
                             </a></td>
+                        </tr>-->
+                        <tr class="courseTablePrepend" data-session="<%=session%>" data-year="<%=year%>">
+                            <td class="add-course" colspan="2"><a href="#">Add course
+                                <i class="material-icons">
+                                    playlist_add
+                                </i>
+                            </a></td>
+                            <!--<td colspan="2">
+                                <button class="add-course btn btn-sm btn-outline-secondary">Add course
+                                    <i class="material-icons">
+                                        playlist_add
+                                    </i></button>
+                            </td>-->
                         </tr>
                     </tbody>
                 </table>

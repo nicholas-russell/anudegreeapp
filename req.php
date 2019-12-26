@@ -1,6 +1,6 @@
 <?php
 
-require ('scraper\simple_html_dom.php');
+require ('php/simple_html_dom.php');
 
 if (!isset($_GET['y'], $_GET['c'])) {
     echo "Error: not enough parameters supplied.";

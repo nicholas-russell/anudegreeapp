@@ -775,8 +775,10 @@ class Controller {
             this.currentYear = $(e.target).closest('tr').data("year");
             this.currentSession = $(e.target).closest('tr').data("session");
             this.view.courseModalHeader.html(this.currentSession + " " + this.currentYear);
+
             this.view.courseModalSessionSelect.clear(true);
             this.view.courseModalSessionSelect.addItem(this.currentSession, false);
+
             this.currentYear > currentYearOptions ? $('#courseSelectWarning').removeClass('d-none') : $('#courseSelectWarning').addClass('d-none');
             this.view.courseModal.modal();
             this.view.buttonCourseModalAdd.one('click', (e)=> {
@@ -792,7 +794,6 @@ class Controller {
                 }
                 this.view.buttonCourseModalCancel.off('click');
             });
-
             this.view.buttonCourseModalCancel.one('click', (e)=> {
                 this.view.buttonCourseModalAdd.off('click');
             });

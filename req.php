@@ -9,7 +9,7 @@ if (!isset($_GET['y'], $_GET['c'])) {
 } else {
     $url = "https://programsandcourses.anu.edu.au/" . $_GET['y'] . "/course/" . $_GET['c'];
     $html = file_get_html($url);
-    if (count($html->find("h1[class=intro__degree-title]")) === 0) {
+    if (count($html->find("span[class=molecule__label]")) === 0) {
         echo "Error: 404 (url: " . $url . ").";
     } else {
         $req = $html->find("div[class=requisite]");

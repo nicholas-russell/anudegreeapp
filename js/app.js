@@ -1,4 +1,5 @@
 const coursesUpdated = "18/11/2019";
+const dataVersion = 2;
 
 const startYearOptions = 2015;
 const currentYearOptions = 2020;
@@ -19,8 +20,8 @@ class Model {
     constructor() {
         this.save = {};
         this.prereqs = {};
-
         this.loadData();
+        this.courses = store.get("courses");
         this.defaultSessions = ["First Semester","Second Semester","Summer Session","Winter Session","Autumn Session","Spring Session"];
         this.orderedSessions = ["First Semester","Autumn Session","Winter Session","Second Semester","Spring Session","Summer Session"];
     }
@@ -29,15 +30,11 @@ class Model {
         // all data: ["courses","majors","minors","programs","specialisations"]
         const dataNames = ["courses"];
         for (let name of dataNames) {
-            if (store.get(name) == null || md5(store.get(name)) !== store.get(name + "_md5")) {
+            if (store.get(name) == null || store.get('dataVersion') < dataVersion) {
                 $.getJSON("js/data/" + name + ".min.json", function (data) {
                     store.set(name,data);
-                    store.set(name + "_md5",md5(data));
                 });
-                console.log(`${name} loaded from JSON`);
-            } else {
-                this.courses = store.get(name);
-                console.log(`${name} loaded from localstorage`);
+                store.set('dataVersion', dataVersion);
             }
         }
     }
@@ -269,9 +266,9 @@ class Model {
     getMinimumGrades(grades,goalGpa,currentGpa,unitsCompleted, unitsAvailable) {
         let gpa = (this.calculateGPA(grades)*unitsAvailable + (currentGpa*unitsCompleted))/(unitsAvailable + unitsCompleted);
         if (gpa >= goalGpa) {
-            return {gpa: gpa, grades: grades, result: true};
+            return {gpa: gpa.toFixed(3), grades: grades, result: true};
         } else if (grades[0] === unitsAvailable) {
-            return {gpa: gpa, grades: grades, result: false};
+            return {gpa: gpa.toFixed(3), grades: grades, result: false};
         } else {
             let w = 0;
             $.each(grades, (i,e)=>{
@@ -294,6 +291,38 @@ class Model {
             return this.getMinimumGrades(grades,goalGpa,currentGpa,unitsCompleted,unitsAvailable);
         }
 
+    }
+
+    getTableForPdf() {
+        let rtn = "<table><tr><th scope='col'>Year</th><th scope='col'>Session</th><th scope='col'>Code</th><th scope='col'>Course</th></tr>";
+        for (let yr of Object.keys(this.save)) {
+            let yrPrinted = false;
+            let yrCount = 0;
+            for (let session of this.save[yr].sessions) {
+                let ssnPrinted = false;
+                let ssnCount = 0;
+                for (let course of session.courses) {
+                    let courseModel = app.model.getCourseModel(yr, course);
+                    rtn += `<tr>`;
+                    if (!yrPrinted) {
+                        rtn += `<td rowspan='YRCOUNT'>${yr}</td>`;
+                        yrPrinted = true;
+                    }
+                    if (!ssnPrinted) {
+                        rtn += `<td rowspan='SSNCOUNT'>${session.type}</td>`;
+                        ssnPrinted = true;
+                    }
+                    rtn += `<td>${course}</td><td>${courseModel.name} (${courseModel.units} units)</td>`;
+                    rtn += `</tr>`;
+                    ssnCount++;
+                    yrCount++;
+                }
+                rtn = rtn.replace('SSNCOUNT', ssnCount);
+            }
+            rtn = rtn.replace("YRCOUNT",yrCount);
+        }
+        rtn += "</table>";
+        return rtn;
     }
 
 }
@@ -443,13 +472,11 @@ class View {
     }
 
     removeSession(year, session) {
-        console.log(year + session);
         let s = session.replace(/ /g,"_");
         $(`#${year}_${s}`).fadeOutAndRemove('fast');
     }
 
     removeYear(year) {
-        console.log(year);
         $(`#year_${year}-li`).fadeOutAndRemove('fast');
         $(`#year_${year}-tab`).fadeOutAndRemove('fast');
     }
@@ -548,10 +575,7 @@ class View {
         let courseLabelText = "";
         let totalUnitsText = "";
         let totalCoursesText = "";
-        let totalUnits = 0;
-        $(".gpa-unit-entry").each((i, e) => {
-            totalUnits += parseInt($(e).val());
-        });
+        let totalUnits = this.gpaGetTotalUnits();
         if (value === 0) {
             courseLabelText = "";
         } else {
@@ -567,6 +591,14 @@ class View {
         $(selector).closest(".form-group").find(".course-label").text(courseLabelText);
         $('#gpaModalTotalUnits').text(totalUnitsText);
         $('#gpaModalTotalCourses').text(totalCoursesText);
+    }
+
+    gpaGetTotalUnits() {
+        let rtn = 0;
+         $(".gpa-unit-entry").each((i, e) => {
+            rtn += parseInt($(e).val());
+        });
+         return rtn;
     }
 
     renderWamTable(data) {
@@ -598,6 +630,12 @@ class View {
 
     addRowToWamManualTable() {
         $('#wamModalTableMarker').before(this.wamManualRowTemplate({}));
+    }
+
+    getGradeCounts() {
+        return $('.gpa-unit-entry').map((i, e) => {
+            return $(e).val()/6;
+        }).get();
     }
 
 }
@@ -634,7 +672,7 @@ class Controller {
                     }
                 }
             }
-            //this.view.showYearTab(years[0]);
+            this.view.showYearTab(years[0]);
         }
     }
 
@@ -788,15 +826,20 @@ class Controller {
                 if (confirm(`Warning: ${year} has sessions in it.\nAre you sure you want to delete it?`)) {
                     this.model.removeYear(year);
                     this.view.removeYear(year);
-                } else {}
+                }
             } else {
                 this.model.removeYear(year);
                 this.view.removeYear(year);
             }
         });
 
-        $("#resetData").on('click', ()=> {
-
+        $("#resetDataBtn").on('click', ()=> {
+            if (confirm("Are you sure you want to reset?")) {
+                for (let year of Object.keys(app.model.save)) {
+                    this.model.removeYear(year);
+                    this.view.removeYear(year);
+                }
+            }
         });
 
         $('#unitSummaryBtn').on('click', ()=> {
@@ -810,7 +853,7 @@ class Controller {
             $('#gpaModal').modal();
         });
 
-        $('.input-num-control').on('click', (e)=> {
+        $(".input-num-control").on('click', (e)=>{
             let selector = $(e.target).data("for");
             let action = $(e.target).data("action");
             if (action === "inc") {
@@ -818,7 +861,10 @@ class Controller {
             } else {
                 document.getElementById(selector).stepDown();
             }
+        });
 
+        $(".input-num-control[data-type='units']").on('click', (e)=> {
+            let selector = $(e.target).data("for");
             if (document.getElementById(selector).value % 6 !== 0) {
                 $("#"+selector).addClass("is-invalid");
                 $('#gpaModalWarning').removeClass("d-none");
@@ -826,12 +872,11 @@ class Controller {
                 $('#gpaModalWarning').addClass("d-none");
                 $("#"+selector).removeClass("is-invalid");
                 let value = document.getElementById(selector).value/6;
+
                 app.view.updateGPAFields(e.target, value);
-                let gradeCounts = $('.gpa-unit-entry').map((i, e) => {
-                    return $(e).val()/6;
-                }).get();
-                let grade = app.model.calculateGPA(gradeCounts);
+                let grade = app.model.calculateGPA(app.view.getGradeCounts())
                 $('#gpaModalManualGrade').text(grade);
+                $('#gpaModalGoalGPA').val(grade);
             }
         });
 
@@ -843,13 +888,11 @@ class Controller {
                 $(e.target).removeClass("is-invalid");
                 $('#gpaModalWarning').addClass("d-none");
                 let value = $(e.target).val()/6;
+
                 app.view.updateGPAFields(e.target, value);
-                let gradeCounts = $('.gpa-unit-entry').map((i, e) => {
-                    return $(e).val()/6;
-                }).get();
-                let grade = app.model.calculateGPA(gradeCounts);
-                console.log(grade);
+                let grade = app.model.calculateGPA(app.view.getGradeCounts());
                 $('#gpaModalManualGrade').text(grade);
+                $('#gpaModalGoalGPA').val(grade);
             }
         });
 
@@ -899,7 +942,57 @@ class Controller {
 
         $('#wamModalManualAddCourse').on('click', ()=>{
             app.view.addRowToWamManualTable();
-        })
+        });
+
+        $('#gpaModalGoalSubmit').on('click', ()=>{
+           let currentGPA = app.model.calculateGPA(app.view.getGradeCounts());
+           let currentUnits = app.view.gpaGetTotalUnits()/6;
+           let goal = $('#gpaModalGoalGPA').val();
+           let unitsAvailable = 4*$('#gpaModalGoalSemesters').val();
+           let grades = [0,0,0,0,unitsAvailable];
+           //console.log(`currentGPA: ${currentGPA}, currentUnits: ${currentUnits}, gpaGoal: ${goal}, unitsAv: ${unitsAvailable}, grades: ${grades}`);
+           let result = app.model.getMinimumGrades(grades,goal,currentGPA,currentUnits,unitsAvailable);
+           if (result.result) {
+                $('#gpaModalGoalResultGpa')
+                    .addClass("text-success")
+                    .removeClass("text-danger")
+                    .val(result.gpa);
+           } else {
+               $('#gpaModalGoalResultGpa')
+                   .removeClass("text-success")
+                   .addClass("text-danger")
+                   .val(result.gpa);
+           }
+           $('#gpaModalGoalResultGpa').text("").text(result.gpa);
+           $('#gpaModalGoalResults').removeClass("d-none");
+           let n = 1;
+           $.each(result.grades, (i,e) => {
+               if (e === 0) {
+                   return true;
+               } else {
+                   $('#gpaModalGoalResultText' + n).text(`${e} x ${(gradeLabels[i])}`);
+                   n++;
+               }
+           });
+
+        });
+
+        $('#pdfBtn').on('click', ()=>{
+            let doc = new jsPDF();
+            $('#pdfTable').html(app.model.getTableForPdf());
+            let marginX = 14;
+            doc.setFontSize(22);
+            doc.text("ANU Degree Plan",marginX,22);
+            doc.autoTable({
+                html: '#pdfTable table',
+                startY: 28,
+                styles: {cellWidth: 'wrap'},
+                theme: 'grid',
+            });
+
+            doc.save('anu_plan.pdf');
+        });
+
     }
 
     calculateWamGpa(manual, fstYear) {

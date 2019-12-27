@@ -21,6 +21,7 @@ class Model {
         this.save = {};
         this.prereqs = {};
         this.loadData();
+
         this.courses = store.get("courses");
         this.defaultSessions = ["First Semester","Second Semester","Summer Session","Winter Session","Autumn Session","Spring Session"];
         this.orderedSessions = ["First Semester","Autumn Session","Winter Session","Second Semester","Spring Session","Summer Session"];
@@ -32,7 +33,15 @@ class Model {
         for (let name of dataNames) {
             if (store.get(name) == null || store.get('dataVersion') < dataVersion) {
                 $.getJSON("js/data/" + name + ".min.json", function (data) {
-                    store.set(name,data);
+                    try {
+                        store.set(name,data);
+                    } catch(error) {
+                        $('#localStorageErrorCode').html(error);
+                        $('#localStorageAlert').removeClass("d-none");
+                        $('.localStorageErrorHide').addClass("d-none");
+                        $('#getStartedAlert').alert('close');
+                        $('#mobileAlert').alert('close');
+                    }
                 });
                 store.set('dataVersion', dataVersion);
             }

@@ -72,6 +72,16 @@
 </head>
 <body>
 <div class="container">
+    <div class="row d-block d-md-none mt-3 mt-md-0 mb-0">
+        <div class="col">
+            <div class="alert alert-danger alert-dismissible fade show" role="alert" id="mobileAlert">
+                <p><strong>Warning</strong> This site is not intended to be used on mobile devices/small screens. It is best used on a PC/Mac on Google Chrome.</p>
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        </div>
+    </div>
     <div class="row">
         <div class="col">
             <div class="card mt-3">
@@ -92,17 +102,24 @@
                                 <h3>(Unofficial) ANU Degree Planner <small class="text-muted">beta</small></h3>
                                 <small class="text-muted align-text-bottom d-sm-block d-none"><em>Courses last updated <span id="coursesUpdated"></span></em></small>
                             </div>
+                            <div class="alert alert-danger alert-dismissible fade show d-none" role="alert" id="localStorageAlert">
+                                <strong>Error: </strong>This browser is NOT supported currently because of localStorage limits. Please use Google Chrome/Firefox. <br/>
+                                <span id="localStorageErrorCode"></span>
+                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    <div class="row mb-2">
+                    <div class="row mb-2 localStorageErrorHide">
                         <div class="col">
                             <button class="btn btn-sm btn-outline-primary mb-2 mb-sm-0" id="unitSummaryBtn">Unit Summary</button>
                             <button class="btn btn-sm btn-outline-primary mb-2 mb-sm-0" id="gpaBtn">Calculate GPA/WAM</button>
-                            <button class="btn btn-sm btn-outline-primary" id="pdfBtn">Save as PDF</button>
-                            <button class="btn btn-sm btn-outline-danger" id="resetDataBtn">Reset</button>
+                            <button class="btn btn-sm btn-outline-primary mb-2 mb-sm-0" id="pdfBtn">Save as PDF</button>
+                            <button class="btn btn-sm btn-outline-danger mb-2 mb-sm-0" id="resetDataBtn">Reset</button>
                         </div>
                     </div>
-                    <div class="row">
+                    <div class="row localStorageErrorHide">
                         <div class="col">
                             <ul class="nav nav-tabs" id="navTabs" role="tablist">
                                 <!--<li class="nav-item" id="tabNavPrepend">
@@ -132,11 +149,11 @@
     </div>
     <div class="row">
         <div class="col">
-            <p><small>
+            <p class="mb-0"><small>
                 This is an unofficial degree planner for the ANU, and therefore may have inaccuracies.
                 Always check <a target="_blank" href="https://programsandcourses.anu.edu.au/">Programs and Courses</a> to make sure courses are actually available.
             </small></p>
-
+            <p><small>Source code available on <a target="_blank" href="https://github.com/nicholas-russell/anudegreeapp">Github</a>.</small></p>
         </div>
     </div>
 </div>

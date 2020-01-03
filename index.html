@@ -1,6 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-154921803-1"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'UA-154921803-1');
+    </script>
+
     <meta charset="UTF-8">
     <title>ANU Degree Planner</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -103,20 +113,20 @@
                                 <small class="text-muted align-text-bottom d-sm-block d-none"><em>Courses last updated <span id="coursesUpdated"></span></em></small>
                             </div>
                             <div class="alert alert-danger alert-dismissible fade show d-none" role="alert" id="localStorageAlert">
-                                <strong>Error: </strong>This browser is NOT supported currently because of localStorage limits. Please use Google Chrome/Firefox. <br/>
-                                <span id="localStorageErrorCode"></span>
+                                <p><strong>Error: </strong>This browser is NOT supported currently because of localStorage limits. Please use Google Chrome/Firefox.</p>
+                                <p><span id="localStorageErrorCode"></span></p>
                                 <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                                     <span aria-hidden="true">&times;</span>
                                 </button>
                             </div>
                         </div>
                     </div>
-                    <div class="row mb-2 localStorageErrorHide">
+                    <div class="row mb-2">
                         <div class="col">
-                            <button class="btn btn-sm btn-outline-primary mb-2 mb-sm-0" id="unitSummaryBtn">Unit Summary</button>
+                            <button class="btn btn-sm btn-outline-primary mb-2 mb-sm-0 localStorageErrorHide" id="unitSummaryBtn">Unit Summary</button>
                             <button class="btn btn-sm btn-outline-primary mb-2 mb-sm-0" id="gpaBtn">Calculate GPA/WAM</button>
-                            <button class="btn btn-sm btn-outline-primary mb-2 mb-sm-0" id="pdfBtn">Save as PDF</button>
-                            <button class="btn btn-sm btn-outline-danger mb-2 mb-sm-0" id="resetDataBtn">Reset</button>
+                            <button class="btn btn-sm btn-outline-primary mb-2 mb-sm-0 localStorageErrorHide" id="pdfBtn">Save as PDF</button>
+                            <button class="btn btn-sm btn-outline-danger mb-2 mb-sm-0 localStorageErrorHide" id="resetDataBtn">Reset</button>
                         </div>
                     </div>
                     <div class="row localStorageErrorHide">

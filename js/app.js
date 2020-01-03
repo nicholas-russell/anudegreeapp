@@ -19,10 +19,10 @@ jQuery.fn.fadeOutAndRemove = function(speed){
 class Model {
     constructor() {
         this.save = {};
-        this.prereqs = {};
+        /*if (this.loadData()) {
+            this.courses = store.get("courses");
+        }*/
         this.loadData();
-
-        this.courses = store.get("courses");
         this.defaultSessions = ["First Semester","Second Semester","Summer Session","Winter Session","Autumn Session","Spring Session"];
         this.orderedSessions = ["First Semester","Autumn Session","Winter Session","Second Semester","Spring Session","Summer Session"];
     }
@@ -36,7 +36,8 @@ class Model {
                     try {
                         store.set(name,data);
                     } catch(error) {
-                        $('#localStorageErrorCode').html(error);
+                        console.log(error);
+                        $('#localStorageErrorCode').text(error);
                         $('#localStorageAlert').removeClass("d-none");
                         $('.localStorageErrorHide').addClass("d-none");
                         $('#getStartedAlert').alert('close');
@@ -45,6 +46,9 @@ class Model {
                 });
                 store.set('dataVersion', dataVersion);
             }
+        }
+        for (let name of dataNames) {
+            this[name] = store.get(name);
         }
     }
 
@@ -687,15 +691,15 @@ class Controller {
 
     registerEvents() {
         const courseFilterUpdate = function() {
-            this.view.courseModalSearchSelect.clearOptions();
-            this.view.courseModalSearchSelect.clear(true);
-            this.view.courseModalSearchSelect.addOption(this.model.getFilteredCourseList(
-                this.currentYear,
-                this.view.courseModalSessionSelect.items,
-                this.view.courseModalFacultySelect.items,
-                this.view.courseModalCareerSelect.items
+            app.view.courseModalSearchSelect.clearOptions();
+            app.view.courseModalSearchSelect.clear(true);
+            app.view.courseModalSearchSelect.addOption(app.model.getFilteredCourseList(
+                app.currentYear,
+                app.view.courseModalSessionSelect.items,
+                app.view.courseModalFacultySelect.items,
+                app.view.courseModalCareerSelect.items
             ));
-        }.bind(this);
+        };
 
         const getPrereq = function() {
             $('#courseSelectReqText').addClass("d-none");
@@ -975,6 +979,8 @@ class Controller {
            }
            $('#gpaModalGoalResultGpa').text("").text(result.gpa);
            $('#gpaModalGoalResults').removeClass("d-none");
+           $('#gpaModalGoalResultText1').text("");
+           $('#gpaModalGoalResultText2').text("");
            let n = 1;
            $.each(result.grades, (i,e) => {
                if (e === 0) {

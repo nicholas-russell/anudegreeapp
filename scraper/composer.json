@@ -1,0 +1,6 @@
+{
+    "require": {
+        "paquettg/php-html-parser": "^2.1",
+        "wa72/htmlpagedom": "^2.0"
+    }
+}

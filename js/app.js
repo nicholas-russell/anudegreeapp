@@ -1,7 +1,7 @@
-const coursesUpdated = "18/11/2019";
-const dataVersion = 2;
+const coursesUpdated = "03/01/2020";
+const dataVersion = 4;
 
-const startYearOptions = 2015;
+const startYearOptions = 2017;
 const currentYearOptions = 2020;
 const endYearOptions = 2025;
 
@@ -19,6 +19,7 @@ jQuery.fn.fadeOutAndRemove = function(speed){
 class Model {
     constructor() {
         this.save = {};
+        this.courses = {};
         /*if (this.loadData()) {
             this.courses = store.get("courses");
         }*/
@@ -55,7 +56,6 @@ class Model {
     _commit() {
         store.set('save',this.save);
     }
-
 
     setMark(mark, course, session, year) {
         if (!this.save[year]["sessions"][_.findIndex(this.save[year]["sessions"], {type: session})].hasOwnProperty("marks")) {
@@ -112,7 +112,7 @@ class Model {
 
     getCourseModel(year, course) {
         let courseList = this.getCourseListForYear(year);
-        return courseList[_.findIndex(courseList,{code:course})];
+        return courseList[_.findIndex(courseList,{c:course})];
     }
 
     yearExists(year) {
@@ -148,9 +148,9 @@ class Model {
     getFilteredCourseList(year, sessions, codes, careers) {
         let courseArray = this.getCourseListForYear(year);
         return courseArray.filter((c) => {
-           return   (sessions.some((s) => c.session.includes(s)) || sessions.length === 0)
-            &&      (codes.includes(c.code.substr(0,4)) || codes.length === 0)
-            &&      (careers.includes(c.level) || careers.length === 0);
+           return   (sessions.some((s) => c.s.includes(s)) || sessions.length === 0)
+            &&      (codes.includes(c.c.substr(0,4)) || codes.length === 0)
+            &&      (careers.includes(c.l) || careers.length === 0);
         });
     }
 
@@ -202,7 +202,7 @@ class Model {
             let faculty = code.substr(0,4);
             let cat = code.substr(4,8);
             let level = cat.substr(0,1) + "000";
-            let units = this.getCourseModel(year, code).units;
+            let units = this.getCourseModel(year, code).u;
             return {faculty: faculty, cat: cat, level: level, units: units};
         }
     }
@@ -211,9 +211,7 @@ class Model {
         let rtn = false;
         for (let year of Object.keys(this.save)) {
             if (y > year) {
-                console.log(`checking ${year} all sessions`);
                 for (let session of this.save[year].sessions) {
-                    console.log(`checking ${year} for ${session.type}`);
                     for (let course of session.courses) {
                         if (course === c) {
                             rtn = true;
@@ -222,10 +220,8 @@ class Model {
                     }
                 }
             } else if (y == year) {
-                console.log(`checking ${year} only some sessions`);
                 for (let session of this.save[year].sessions) {
                     if (_.indexOf(this.orderedSessions, s) >= _.indexOf(this.orderedSessions, session)) {
-                        console.log(`checking ${year} for ${session.type}`);
                         for (let course of session.courses) {
                             if (course === c) {
                                 rtn = true;
@@ -242,7 +238,7 @@ class Model {
     calculateGPA(counts) {
         let totalCourses = 0;
         let totalMarks = 0;
-        _.each(counts, (e,i,l) => {
+        _.each(counts, (e,i) => {
             totalCourses += e;
             totalMarks += gradeMarks[i] * e;
         });
@@ -325,7 +321,7 @@ class Model {
                         rtn += `<td rowspan='SSNCOUNT'>${session.type}</td>`;
                         ssnPrinted = true;
                     }
-                    rtn += `<td>${course}</td><td>${courseModel.name} (${courseModel.units} units)</td>`;
+                    rtn += `<td>${course}</td><td>${courseModel.n} (${courseModel.u} units)</td>`;
                     rtn += `</tr>`;
                     ssnCount++;
                     yrCount++;
@@ -387,21 +383,21 @@ class View {
         });
         this.courseModalSearchInit = this.courseModalSearchId.selectize({
             create: false,
-            searchField: ["code","name"],
+            searchField: ["c","n"],
             maxItems: 1,
-            sortField: 'code',
-            valueField: 'code',
-            labelField: 'name',
+            sortField: 'c',
+            valueField: 'c',
+            labelField: 'n',
             render: {
                 item: (c, escape) => {
-                    return `<div><strong>${escape(c.code)}</strong> ${escape(c.name)}</div>`;
+                    return `<div><strong>${escape(c.c)}</strong> ${escape(c.n)}</div>`;
                 },
                 option: (c, escape) => {;
                     return `<div class="ml-2 my-1">
-                                <strong>${escape(c.code)}</strong>  ${escape(c.name)}
+                                <strong>${escape(c.c)}</strong>  ${escape(c.n)}
                                 <br/>
-                                <small><strong>Units: </strong> ${escape(c.units)}</small>
-                                <small><strong>Sessions: </strong> ${escape(c.session)}</small>
+                                <small><strong>Units: </strong> ${escape(c.u)}</small>
+                                <small><strong>Sessions: </strong> ${escape(c.s)}</small>
                             </div>`;
                 }
             }
@@ -463,9 +459,9 @@ class View {
 
     addCourseToTable(year, session, course) {
         let data = {
-            code: course.code,
-            name: course.name,
-            units: course.units,
+            code: course.c,
+            name: course.n,
+            units: course.u,
             year: year,
             session: session,
             sessionCode: session.replace(/ /g,"_"),
@@ -479,7 +475,6 @@ class View {
     }
 
     removeCourse(year, session, course) {
-        console.log(year + session + course);
         let s = session.replace(/ /g,"_");
         $(`#${year}_${s}_${course}`).fadeOutAndRemove('fast');
     }
@@ -626,8 +621,8 @@ class View {
                         code: course,
                         year: year,
                         session: session.type,
-                        units: courseData.units,
-                        name: courseData.name,
+                        units: courseData.u,
+                        name: courseData.n,
                         mark: mark,
                         grade: mark === "" ? "" : app.model.getGradeFromMark(mark)
                     };
@@ -720,10 +715,10 @@ class Controller {
                     app.view.checkPrereqs(app.view.courseModalRequirements, app.currentSession, app.currentYear);
                 },
                 error: (xhr) => {
-                    console.log(xhr);
+                    console.error(xhr);
                 },
                 complete: () => {
-                    console.log("complete");
+
                 }
 
             });

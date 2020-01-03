@@ -1,3 +1,3 @@
 # anudegreeapp
 
-Todo...
+A degree planner for ANU. Currently in Beta.

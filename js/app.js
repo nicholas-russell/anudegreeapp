@@ -1,5 +1,5 @@
 const coursesUpdated = "03/01/2020";
-const dataVersion = 4;
+const dataVersion = 5;
 
 const startYearOptions = 2017;
 const currentYearOptions = 2020;
@@ -14,7 +14,11 @@ jQuery.fn.fadeOutAndRemove = function(speed){
     $(this).fadeOut(speed,function(){
         $(this).remove();
     })
-}
+};
+
+$(function () {
+    $('[data-toggle="tooltip"]').tooltip()
+});
 
 class Model {
     constructor() {
@@ -23,7 +27,7 @@ class Model {
         /*if (this.loadData()) {
             this.courses = store.get("courses");
         }*/
-        this.loadData();
+        //this.loadData();
         this.defaultSessions = ["First Semester","Second Semester","Summer Session","Winter Session","Autumn Session","Spring Session"];
         this.orderedSessions = ["First Semester","Autumn Session","Winter Session","Second Semester","Spring Session","Summer Session"];
     }
@@ -33,23 +37,40 @@ class Model {
         const dataNames = ["courses"];
         for (let name of dataNames) {
             if (store.get(name) == null || store.get('dataVersion') < dataVersion) {
-                $.getJSON("js/data/" + name + ".min.json", function (data) {
-                    try {
-                        store.set(name,data);
-                    } catch(error) {
-                        console.log(error);
-                        $('#localStorageErrorCode').text(error);
-                        $('#localStorageAlert').removeClass("d-none");
-                        $('.localStorageErrorHide').addClass("d-none");
-                        $('#getStartedAlert').alert('close');
-                        $('#mobileAlert').alert('close');
+                $.ajax("js/data/" + name + ".min.json",{
+                    accepts: 'application/json',
+                    beforeSend: () => {
+                        store.set(name,null);
+                    },
+                    success: async (data) => {
+                        console.log(`Loaded data for ${name}`);
+                        try {
+                            await store.set(name,data);
+                            this[name] = data;
+                        } catch (error) {
+                            $('#localStorageErrorCode').text(error);
+                            $('#localStorageAlert').removeClass("d-none");
+                            $('.localStorageErrorHide').addClass("d-none");
+                            $('#getStartedAlert').alert('close');
+                            $('#mobileAlert').alert('close');
+                        }
+                    },
+                    error: (error) => {
+                        console.warn(error);
+                    },
+                    complete: () => {
+                        if (this[name] == null) {
+                            console.warn(`${name} is undefined!!`)
+                        } else {
+                            console.log(`${name} has loaded in`);
+                        }
                     }
                 });
+
                 store.set('dataVersion', dataVersion);
+            } else {
+                this[name] = store.get(name);
             }
-        }
-        for (let name of dataNames) {
-            this[name] = store.get(name);
         }
     }
 
@@ -653,19 +674,19 @@ class Controller {
     constructor(m, v) {
         this.model = m;
         this.view = v;
-
         this.currentYear = 2020;
         this.currentSession = "First Semester";
+        this.registerEvents();
+        this.load();
+    }
 
+    async load() {
+        await this.model.loadData();
         if (store.get('save') != null) {
             this.model.save = store.get('save');
             this.loadSave(this.model.save);
             $('#getStartedAlert').alert('close');
         }
-        $(function () {
-            $('[data-toggle="tooltip"]').tooltip()
-        });
-        this.registerEvents();
     }
 
     loadSave(saveData) {
@@ -1057,3 +1078,4 @@ class Year {
 }
 
 const app = new Controller(new Model(), new View());
+

@@ -1020,6 +1020,7 @@ class Controller {
                 startY: 28,
                 styles: {cellWidth: 'wrap'},
                 theme: 'grid',
+                //columnStyles: {course: {cellWidth: 'auto'}}
             });
 
             doc.save('anu_plan.pdf');

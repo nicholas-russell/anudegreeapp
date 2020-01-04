@@ -4,7 +4,7 @@ require ('php/simple_html_dom.php');
 
 if (!isset($_GET['y'], $_GET['c'])) {
     echo "Error: not enough parameters supplied.";
-} elseif (strlen($_GET['y']) !== 4 || strlen($_GET['c']) !== 8) {
+} elseif (strlen($_GET['y']) !== 4 || strlen($_GET['c']) > 9) {
     echo "Error: One or more parameters supplied have incorrect lengths (year: " . $_GET['y'] . ", course: " . $_GET['c'] . ").";
 } else {
     $url = "https://programsandcourses.anu.edu.au/" . $_GET['y'] . "/course/" . $_GET['c'];

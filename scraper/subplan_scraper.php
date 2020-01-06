@@ -23,7 +23,7 @@ foreach ($plan_array as $plan) {
         print $plan . "s loaded for " . $year . ": " . $i . "\n";
     }
 
-    $fp = fopen("output/" . strtolower($plan) . "s.json", 'w');
+    $fp = fopen("output/" . strtolower($plan) . "s.min.json", 'w');
     fwrite($fp,json_encode($result));
     fclose($fp);
 }

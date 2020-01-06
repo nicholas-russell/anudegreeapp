@@ -1,5 +1,5 @@
 const coursesUpdated = "03/01/2020";
-const dataVersion = 5;
+const dataVersion = 8;
 
 const startYearOptions = 2017;
 const currentYearOptions = 2020;
@@ -24,17 +24,17 @@ class Model {
     constructor() {
         this.save = {};
         this.courses = {};
-        /*if (this.loadData()) {
-            this.courses = store.get("courses");
-        }*/
-        //this.loadData();
+        this.majors = {};
+        this.minors = {};
+        this.programs = {};
+
         this.defaultSessions = ["First Semester","Second Semester","Summer Session","Winter Session","Autumn Session","Spring Session"];
         this.orderedSessions = ["First Semester","Autumn Session","Winter Session","Second Semester","Spring Session","Summer Session"];
     }
 
     loadData() {
         // all data: ["courses","majors","minors","programs","specialisations"]
-        const dataNames = ["courses"];
+        const dataNames = ["courses", "minors", "majors", "programs"];
         for (let name of dataNames) {
             if (store.get(name) == null || store.get('dataVersion') < dataVersion) {
                 $.ajax("js/data/" + name + ".min.json",{
@@ -43,7 +43,7 @@ class Model {
                         store.set(name,null);
                     },
                     success: async (data) => {
-                        console.log(`Loaded data for ${name}`);
+                        console.log(`Loaded ${name} from JSON`);
                         try {
                             await store.set(name,data);
                             this[name] = data;
@@ -66,12 +66,12 @@ class Model {
                         }
                     }
                 });
-
-                store.set('dataVersion', dataVersion);
             } else {
+                console.log(`Loaded ${name} from localStorage`);
                 this[name] = store.get(name);
             }
         }
+        store.set('dataVersion', dataVersion);
     }
 
     _commit() {
@@ -355,6 +355,23 @@ class Model {
         return rtn;
     }
 
+    getItemsForPlanSearch(year) {
+        let majors = _.mapObject(this.majors[year], (v) => {
+            return {...v, type: 'Major'}
+        });
+        let minors = _.mapObject(this.minors[year], (v) => {
+            return {...v, type: 'Minor'}
+        });
+        let programs = _.mapObject(this.programs[year], (v) => {
+            return {...v, type: 'Program'}
+        });
+        let i = 0;
+        let rtn = [];
+        for (let v in majors) { rtn[i] = majors[v]; i++;}
+        for (let v in minors) { rtn[i] = minors[v]; i++;}
+        for (let v in programs) { rtn[i] = programs[v]; i++;}
+        return rtn;
+    }
 }
 
 class View {
@@ -389,6 +406,34 @@ class View {
         this.buttonCourseModalAdd = $('#courseSelectModalAddBtn');
         this.buttonCourseModalCancel = $('#courseSelectModalCancelBtn');
 
+        this.requirementsModal = {
+            modal: $('#requirementsModal'),
+            yearSelect: $('#requirementsModalYearSelect'),
+            text: $('#requirementsModalText'),
+            textContainer: $('#requirementsModalTextContainer'),
+            spinner: $('#requirementsModalSpinner'),
+            searchSelectize: $('#requirementsModalSearch').selectize({
+                create: false,
+                searchField: ["n"],
+                maxItems: 1,
+                sortField: 'c',
+                valueField: 'c',
+                labelField: 'n',
+                render: {
+                    item: (c, escape) => {
+                        return `<div><strong>${escape(c.c)}</strong> ${escape(c.n)}</div>`;
+                    },
+                    option: (c, escape) => {;
+                        return `<div class="ml-2 my-1">
+                                <strong>${escape(c.c)}</strong>  ${escape(c.n)}
+                                <br/>
+                                <small><strong>Level: </strong> ${escape(c.l)}</small>
+                            </div>`;
+                    }
+                }
+            })
+        };
+
         this.tabsNavPrependMarker = $('#tabNavPrepend ');
         this.tabsContentPrependMarker = $('#tabContents');
 
@@ -422,7 +467,7 @@ class View {
                             </div>`;
                 }
             }
-        })
+        });
 
         this.courseModalSessionSelect = this.courseModalSessionSelectInit[0].selectize;
         this.courseModalFacultySelect = this.courseModalFacultySelectInit[0].selectize;
@@ -511,12 +556,13 @@ class View {
     }
 
     checkPrereqs(selector, year, session) {
+        console.log("test");
         selector.find("a[data-coursecode]").each((i, e) => {
             let course = $(e).data('coursecode');
             if (app.model.courseCompleted(course, year, session)) {
-                $(e).addClass("text-success");
+                $(e).addClass("text-success").removeClass("text-danger");
             } else {
-                $(e).addClass("text-danger");
+                $(e).addClass("text-danger").removeClass("text-success");
             }
         });
     }
@@ -719,7 +765,7 @@ class Controller {
 
         const getPrereq = function() {
             $('#courseSelectReqText').addClass("d-none");
-            let year = (app.currentYear > currentYearOptions ? currentYearOptions : app.currentYear);
+            let year = app.currentYear > currentYearOptions || app.currentYear == 2019 ? currentYearOptions : app.currentYear;
             let course = app.view.courseModalSearchSelect.items[0];
             let url = `/req.php?c=${course}&y=${year}`;
             app.view.courseModalRequirements.html("");
@@ -732,7 +778,7 @@ class Controller {
                 success: (data) => {
                     $('#courseSelectReqSpinner').addClass("d-none");
                     $('#courseSelectReqText').removeClass("d-none");
-                    app.view.courseModalRequirements.html("").html(data);
+                    app.view.courseModalRequirements.html(data);
                     app.view.checkPrereqs(app.view.courseModalRequirements, app.currentSession, app.currentYear);
                 },
                 error: (xhr) => {
@@ -741,9 +787,39 @@ class Controller {
                 complete: () => {
 
                 }
-
             });
         };
+
+        const getRequirements = function() {
+            let year = app.view.requirementsModal.yearSelect.val() == 2019 ? currentYearOptions : app.view.requirementsModal.yearSelect.val();
+            let code = app.view.requirementsModal.searchSelectize[0].selectize.items[0];
+            let type = "";
+            if ((code.slice(code.length-3)) === "MAJ") {
+                type = "major";
+            } else if ((code.slice(code.length-3) === "MIN")) {
+                type = "minor";
+            } else {
+                type = "program";
+            }
+            let url = `/plan.php?c=${code}&y=${year}&t=${type}`;
+            app.view.requirementsModal.text.html("");
+            $.ajax({
+                type: 'GET',
+                url: url,
+                beforeSend: ()=> {
+                    app.view.requirementsModal.textContainer.addClass("d-none");
+                    app.view.requirementsModal.spinner.removeClass("d-none");
+                },
+                success: (data) => {
+                    app.view.requirementsModal.textContainer.removeClass("d-none");
+                    app.view.requirementsModal.spinner.addClass("d-none");
+                    app.view.requirementsModal.text.html(data);
+                    app.view.checkPrereqs(app.view.requirementsModal.text, "Summer Session", endYearOptions);
+                }
+            })
+        };
+
+        this.view.requirementsModal.searchSelectize[0].selectize.on('item_add', getRequirements);
 
         this.view.buttonAddYear.on('click', ()=> {
             this.view.setInputOptions("#newYearSelect",this.model.getNewYearOptions(), currentYearOptions + "", false);
@@ -1027,7 +1103,18 @@ class Controller {
         });
 
         $('#reqBtn').on('click', ()=>{
-           $('#requirementsModal').modal();
+            let yearsArr = Object.keys(app.model.save).length === 0 ? [currentYearOptions] : _.filter(Object.keys(app.model.save),(e)=>{return e <= currentYearOptions});
+            app.view.setInputOptions('#requirementsModalYearSelect',yearsArr,yearsArr[0],false);
+            app.view.requirementsModal.searchSelectize[0].selectize.clearOptions();
+            app.view.requirementsModal.searchSelectize[0].selectize.addOption(app.model.getItemsForPlanSearch(app.view.requirementsModal.yearSelect.val()));
+            app.view.checkPrereqs(app.view.requirementsModal.text, endYearOptions, "Summer Session");
+            app.view.requirementsModal.modal.modal();
+        });
+
+        this.view.requirementsModal.yearSelect.on('change', ()=>{
+           if (app.view.requirementsModal.searchSelectize[0].selectize.items.length !== 0) {
+               getRequirements();
+           }
         });
 
     }

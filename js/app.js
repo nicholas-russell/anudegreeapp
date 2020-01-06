@@ -1104,7 +1104,8 @@ class Controller {
 
         $('#reqBtn').on('click', ()=>{
             let yearsArr = Object.keys(app.model.save).length === 0 ? [currentYearOptions] : _.filter(Object.keys(app.model.save),(e)=>{return e <= currentYearOptions});
-            app.view.setInputOptions('#requirementsModalYearSelect',yearsArr,yearsArr[0],false);
+            let selected = app.view.requirementsModal.yearSelect.val() === "" ? yearsArr[0] : app.view.requirementsModal.yearSelect.val();
+            app.view.setInputOptions('#requirementsModalYearSelect',yearsArr,selected,false);
             app.view.requirementsModal.searchSelectize[0].selectize.clearOptions();
             app.view.requirementsModal.searchSelectize[0].selectize.addOption(app.model.getItemsForPlanSearch(app.view.requirementsModal.yearSelect.val()));
             app.view.checkPrereqs(app.view.requirementsModal.text, endYearOptions, "Summer Session");

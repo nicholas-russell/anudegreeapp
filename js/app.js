@@ -403,7 +403,7 @@ class Model {
             for (let session of this.save[yr].sessions) {
                 for (let course of session.courses) {
                     let data = this.getCourseModel(yr, course);
-                    rtn += `${yr},${session.type},${course},${data.n},${data.u}\n`;
+                    rtn += `${yr},${session.type},${course},${data.n.replace(",","")},${data.u}\n`;
                 }
             }
         }
@@ -1141,7 +1141,15 @@ class Controller {
 
         $('#saveCsvBtn').on('click', ()=> {
             app.model.getCSV();
-        })
+        });
+
+        $('#saveJsonBtn').on('click', ()=> {
+           download(JSON.stringify(app.model.save),"anu_plan.json","data:text/json;encoding=utf-8");
+        });
+
+        $('#loadJsonBtn').on('click', ()=> {
+           $('#jsonLoadModal').modal();
+        });
 
         $('#reqBtn').on('click', ()=>{
             let yearsArr = Object.keys(app.model.save).length === 0 ? [currentYearOptions] : _.filter(Object.keys(app.model.save),(e)=>{return e <= currentYearOptions});

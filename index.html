@@ -126,11 +126,14 @@
                             <button class="btn btn-sm btn-outline-primary mb-2 mb-md-0 localStorageErrorHide" id="reqBtn">Check Requirements</button>
                             <button class="btn btn-sm btn-outline-primary mb-2 mb-md-0" id="gpaBtn">Calculate GPA/WAM</button>
                             <button class="btn btn-sm btn-outline-primary mb-2 mb-md-0 dropdown-toggle localStorageErrorHide" type="button" id="saveBtn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                Save As
+                                Save as
                             </button>
                             <div class="dropdown-menu" aria-labelledby="saveBtn">
                                 <button class="dropdown-item" id="savePdfBtn">PDF</button>
                                 <button class="dropdown-item" id="saveCsvBtn">CSV/Excel</button>
+                                <!--<div class="dropdown-divider"></div>
+                                <button class="dropdown-item" id="saveJsonBtn">Save JSON</button>
+                                <button class="dropdown-item" id="loadJsonBtn">Load JSON</button>-->
                             </div>
                             <button class="btn btn-sm btn-outline-danger mb-2 mb-sm-0 localStorageErrorHide" id="resetDataBtn">Reset</button>
                         </div>
@@ -762,6 +765,23 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-primary" id="newSessionModalAddBtn" data-dismiss="modal">Add Session</button>
                 <button type="button" class="btn btn-outline-danger" id="newSessionModalCancelBtn" data-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal" tabindex="-1" role="dialog" id="jsonLoadModal">
+    <div class="modal-dialog modal" role="document">
+        <div class="modal-content">
+            <div class="modal-body">
+                <div class="custom-file">
+                    <input type="file" class="custom-file-input" id="inputGroupFile02">
+                    <label class="custom-file-label" for="inputGroupFile02" aria-describedby="inputGroupFileAddon02">Choose file</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-primary" id="jsonLoadModalLoadBtn" data-dismiss="modal">Load</button>
+                <button type="button" class="btn btn-outline-danger" id="jsonLoadModalCancelBtn" data-dismiss="modal">Cancel</button>
             </div>
         </div>
     </div>

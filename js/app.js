@@ -682,7 +682,7 @@ class Controller {
 
     async load() {
         await this.model.loadData();
-        if (store.get('save') != null) {
+        if (store.get('save') != null && !$.isEmptyObject(store.get('save'))) {
             this.model.save = store.get('save');
             this.loadSave(this.model.save);
             $('#getStartedAlert').alert('close');
@@ -1024,6 +1024,10 @@ class Controller {
             });
 
             doc.save('anu_plan.pdf');
+        });
+
+        $('#reqBtn').on('click', ()=>{
+           $('#requirementsModal').modal();
         });
 
     }

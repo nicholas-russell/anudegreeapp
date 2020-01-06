@@ -16,6 +16,27 @@ jQuery.fn.fadeOutAndRemove = function(speed){
     })
 };
 
+const download = function(content, fileName, mimeType) {
+    let a = document.createElement('a');
+    mimeType = mimeType || 'application/octet-stream';
+
+    if (navigator.msSaveBlob) { // IE10
+        navigator.msSaveBlob(new Blob([content], {
+            type: mimeType
+        }), fileName);
+    } else if (URL && 'download' in a) { //html5 A[download]
+        a.href = URL.createObjectURL(new Blob([content], {
+            type: mimeType
+        }));
+        a.setAttribute('download', fileName);
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    } else {
+        location.href = 'data:application/octet-stream,' + encodeURIComponent(content); // only this mime type is supported
+    }
+};
+
 $(function () {
     $('[data-toggle="tooltip"]').tooltip()
 });
@@ -371,6 +392,22 @@ class Model {
         for (let v in minors) { rtn[i] = minors[v]; i++;}
         for (let v in programs) { rtn[i] = programs[v]; i++;}
         return rtn;
+    }
+
+    getCSV() {
+        let mime = "data:text/csv;encoding=utf-8";
+        let rtn = "";
+        rtn += "Year,Session,Code,Name,Units\n";
+        let i = 0;
+        for (let yr of Object.keys(this.save)) {
+            for (let session of this.save[yr].sessions) {
+                for (let course of session.courses) {
+                    let data = this.getCourseModel(yr, course);
+                    rtn += `${yr},${session.type},${course},${data.n},${data.u}\n`;
+                }
+            }
+        }
+        download(rtn,'course_plan.csv',mime);
     }
 }
 
@@ -1085,7 +1122,7 @@ class Controller {
 
         });
 
-        $('#pdfBtn').on('click', ()=>{
+        $('#savePdfBtn').on('click', ()=>{
             let doc = new jsPDF();
             $('#pdfTable').html(app.model.getTableForPdf());
             let marginX = 14;
@@ -1101,6 +1138,10 @@ class Controller {
 
             doc.save('anu_plan.pdf');
         });
+
+        $('#saveCsvBtn').on('click', ()=> {
+            app.model.getCSV();
+        })
 
         $('#reqBtn').on('click', ()=>{
             let yearsArr = Object.keys(app.model.save).length === 0 ? [currentYearOptions] : _.filter(Object.keys(app.model.save),(e)=>{return e <= currentYearOptions});

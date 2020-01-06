@@ -122,10 +122,16 @@
                     </div>
                     <div class="row mb-2">
                         <div class="col">
-                            <button class="btn btn-sm btn-outline-primary mb-2 mb-sm-0 localStorageErrorHide" id="unitSummaryBtn">Unit Summary</button>
-                            <button class="btn btn-sm btn-outline-primary mb-2 mb-sm-0 localStorageErrorHide" id="reqBtn">Check Requirements</button>
-                            <button class="btn btn-sm btn-outline-primary mb-2 mb-sm-0" id="gpaBtn">Calculate GPA/WAM</button>
-                            <button class="btn btn-sm btn-outline-primary mb-2 mb-sm-0 localStorageErrorHide" id="pdfBtn">Save as PDF</button>
+                            <button class="btn btn-sm btn-outline-primary mb-2 mb-md-0 localStorageErrorHide" id="unitSummaryBtn">Unit Summary</button>
+                            <button class="btn btn-sm btn-outline-primary mb-2 mb-md-0 localStorageErrorHide" id="reqBtn">Check Requirements</button>
+                            <button class="btn btn-sm btn-outline-primary mb-2 mb-md-0" id="gpaBtn">Calculate GPA/WAM</button>
+                            <button class="btn btn-sm btn-outline-primary mb-2 mb-md-0 dropdown-toggle localStorageErrorHide" type="button" id="saveBtn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                Save As
+                            </button>
+                            <div class="dropdown-menu" aria-labelledby="saveBtn">
+                                <button class="dropdown-item" id="savePdfBtn">PDF</button>
+                                <button class="dropdown-item" id="saveCsvBtn">CSV/Excel</button>
+                            </div>
                             <button class="btn btn-sm btn-outline-danger mb-2 mb-sm-0 localStorageErrorHide" id="resetDataBtn">Reset</button>
                         </div>
                     </div>

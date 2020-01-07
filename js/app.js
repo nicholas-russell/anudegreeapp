@@ -394,11 +394,72 @@ class Model {
         return rtn;
     }
 
+    generateCSVTable(data, colLabel, rowTotal, colTotal, sort) {
+        let rows = [];
+        let headers = [];
+        let colTotals = {};
+        let total = 0;
+        let rtn = "";
+        for (let a of Object.keys(data)) {
+            rows.push(a);
+            for (let b of Object.keys(data[a])) {
+                if (_.indexOf(headers, b) === -1) {
+                    headers.push(b);
+                }
+            }
+        }
+        if (sort !== null) {
+            headers.sort(sort);
+        }
+        rtn += `${colLabel},`;
+        for (let a of headers) {
+            rtn += a;
+            if (_.last(headers) !== a) {
+                rtn += ',';
+            }
+        }
+        if (rowTotal) {
+            rtn += ",Total";
+        }
+        rtn+= "\n";
+
+        for (let a of rows) {
+            let rowTotal = 0;
+            rtn += `${a},`;
+            for (let b of headers) {
+                let x = data[a].hasOwnProperty(b) ? data[a][b] : 0;
+                rowTotal += x;
+                colTotals[b] = colTotals.hasOwnProperty(b) ? colTotals[b] + x : x;
+                rtn += x;
+                if (_.last(headers) !== b) {
+                    rtn += ',';
+                }
+            }
+            total += rowTotal;
+            rtn += rowTotal ? `,${rowTotal}\n` : '\n';
+        }
+
+        if (colTotal) {
+            rtn+= 'Total,';
+            for (let a of headers) {
+                rtn += colTotals[a];
+                if (_.last(headers) !== a) {
+                    rtn += ',';
+                }
+            }
+            if (rowTotal) {
+                rtn += `,${total}`;
+            }
+            rtn += '\n';
+        }
+        return rtn;
+    }
+
     getCSV() {
+        let summaryData = this.getUnitSummary();
         let mime = "data:text/csv;encoding=utf-8";
         let rtn = "";
         rtn += "Year,Session,Code,Name,Units\n";
-        let i = 0;
         for (let yr of Object.keys(this.save)) {
             for (let session of this.save[yr].sessions) {
                 for (let course of session.courses) {
@@ -407,7 +468,8 @@ class Model {
                 }
             }
         }
-        download(rtn,'course_plan.csv',mime);
+        rtn += `\nCode Summary\n${this.generateCSVTable(summaryData.codes,"Level",true,true,null)}\nSession Summary\n${this.generateCSVTable(summaryData.sessions,"Year",true,true,null)}`;
+        download(rtn,`anudegree_${new Date().getTime()}.csv`,mime);
     }
 }
 
@@ -1136,7 +1198,7 @@ class Controller {
                 //columnStyles: {course: {cellWidth: 'auto'}}
             });
 
-            doc.save('anu_plan.pdf');
+            doc.save(`anudegree_${new Date().getTime()}.pdf`);
         });
 
         $('#saveCsvBtn').on('click', ()=> {

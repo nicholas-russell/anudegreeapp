@@ -1,5 +1,6 @@
 const coursesUpdated = "03/01/2020";
 const dataVersion = 8;
+const version = 0.1;
 
 const startYearOptions = 2017;
 const currentYearOptions = 2020;
@@ -48,12 +49,14 @@ class Model {
         this.majors = {};
         this.minors = {};
         this.programs = {};
-
+        this.requirements = {};
+        this.loadCachedRequirements();
         this.defaultSessions = ["First Semester","Second Semester","Summer Session","Winter Session","Autumn Session","Spring Session"];
         this.orderedSessions = ["First Semester","Autumn Session","Winter Session","Second Semester","Spring Session","Summer Session"];
     }
 
     loadData() {
+        //let loadingText = $('#coursesUpdated');
         // all data: ["courses","majors","minors","programs","specialisations"]
         const dataNames = ["courses", "minors", "majors", "programs"];
         for (let name of dataNames) {
@@ -62,6 +65,7 @@ class Model {
                     accepts: 'application/json',
                     beforeSend: () => {
                         store.set(name,null);
+                        //loadingText.text(`${name}: loading from server`);
                     },
                     success: async (data) => {
                         console.log(`Loaded ${name} from JSON`);
@@ -83,16 +87,17 @@ class Model {
                         if (this[name] == null) {
                             console.warn(`${name} is undefined!!`)
                         } else {
+                            //loadingText.text(`${name}: load complete`);
                             console.log(`${name} has loaded in`);
                         }
                     }
                 });
             } else {
+                //loadingText.text(`${name}: loaded from LocalStorage`);
                 console.log(`Loaded ${name} from localStorage`);
                 this[name] = store.get(name);
             }
         }
-        store.set('dataVersion', dataVersion);
     }
 
     _commit() {
@@ -377,22 +382,42 @@ class Model {
     }
 
     getItemsForPlanSearch(year) {
-        let majors = _.mapObject(this.majors[year], (v) => {
-            return {...v, type: 'Major'}
-        });
-        let minors = _.mapObject(this.minors[year], (v) => {
-            return {...v, type: 'Minor'}
-        });
-        let programs = _.mapObject(this.programs[year], (v) => {
-            return {...v, type: 'Program'}
-        });
-        let i = 0;
+        let cached = this.getCachedRequirementsCodes();
         let rtn = [];
-        for (let v in majors) { rtn[i] = majors[v]; i++;}
-        for (let v in minors) { rtn[i] = minors[v]; i++;}
-        for (let v in programs) { rtn[i] = programs[v]; i++;}
+        $.each(this.majors[year],(i,v)=> {
+            let group = "curr";
+            if (_.findIndex(cached, {code: v.c}) !== -1) {
+                group = "prev";
+            }
+            rtn.push({...v, type: 'Major', group: group});
+        });
+        $.each(this.minors[year],(i,v)=> {
+            let group = "curr";
+            if (_.findIndex(cached, {code: v.c}) !== -1) {
+                group = "prev";
+            }
+            rtn.push({...v, type: 'Minor', group: group});
+        });
+        $.each(this.programs[year],(i,v)=> {
+            let group = "curr";
+            if (_.findIndex(cached, {code: v.c}) !== -1) {
+                group = "prev";
+            }
+            rtn.push({...v, type: 'Program', group: group});
+        });
         return rtn;
     }
+
+    getModelForPlanCode(code, type, year) {
+        if (type === "Major") {
+            return this.majors[year][_.findIndex(this.majors[year],{c: code})];
+        } else if (type === "Minor") {
+            return this.minors[year][_.findIndex(this.minors[year],{c: code})];
+        } else if (type === "Program") {
+            return this.programs[year][_.findIndex(this.minors[year],{c: code})];
+        }
+    }
+
 
     generateCSVTable(data, colLabel, rowTotal, colTotal, sort) {
         let rows = [];
@@ -471,6 +496,57 @@ class Model {
         rtn += `\nCode Summary\n${this.generateCSVTable(summaryData.codes,"Level",true,true,null)}\nSession Summary\n${this.generateCSVTable(summaryData.sessions,"Year",true,true,null)}`;
         download(rtn,`anudegree_${new Date().getTime()}.csv`,mime);
     }
+
+    loadCachedRequirements() {
+        if (store.get('requirements') !== undefined || !$.isEmptyObject(store.get('requirements'))) {
+            this.requirements = store.get('requirements');
+        }
+    }
+
+    _commitRequirements() {
+        try {
+            store.set('requirements', this.requirements);
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    cacheRequirementsData(year, code, html, subplanType) {
+        if (!this.requirements.hasOwnProperty(year)) {
+            this.requirements[year] = {};
+        }
+        this.requirements[year][code] = {html: html, type: subplanType};
+        this._commitRequirements();
+    }
+
+    resetRequirementsCahce() {
+        this.requirements = {};
+        this._commitRequirements();
+    }
+
+    isRequirementsCached(year, code) {
+        return this.requirements.hasOwnProperty(year) && this.requirements[year].hasOwnProperty(code);
+    }
+
+    getCachedRequirementsHtml(year, code) {
+        if (this.requirements.hasOwnProperty(year) && this.requirements[year].hasOwnProperty(code)) {
+            return this.requirements[year][code].html;
+        } else {
+            return "Cache error";
+        }
+    }
+
+    getCachedRequirementsCodes() {
+        let rtn = [];
+        for (let year of Object.keys(this.requirements)) {
+            for (let code of Object.keys(this.requirements[year])) {
+                if (_.indexOf(rtn, code) === -1) {
+                    rtn.push({code: code, type: this.requirements[year][code].type});
+                }
+            }
+        }
+        return rtn;
+    }
 }
 
 class View {
@@ -512,22 +588,31 @@ class View {
             textContainer: $('#requirementsModalTextContainer'),
             spinner: $('#requirementsModalSpinner'),
             searchSelectize: $('#requirementsModalSearch').selectize({
-                create: false,
-                searchField: ["n"],
+                searchField: ["n","c"],
                 maxItems: 1,
                 sortField: 'c',
                 valueField: 'c',
                 labelField: 'n',
+                optgroups: [
+                    {value: 'prev', label: 'History'},
+                    {value: 'curr', label: 'Results'},
+                ],
+                lockOptgroupOrder: true,
+                optgroupField: 'group',
                 render: {
                     item: (c, escape) => {
                         return `<div><strong>${escape(c.c)}</strong> ${escape(c.n)}</div>`;
                     },
-                    option: (c, escape) => {;
+                    option: (c, escape) => {
                         return `<div class="ml-2 my-1">
                                 <strong>${escape(c.c)}</strong>  ${escape(c.n)}
                                 <br/>
                                 <small><strong>Level: </strong> ${escape(c.l)}</small>
                             </div>`;
+                    },
+                    optgroup_header: (d, escape) => {
+                        return `<div></div>`;
+                        //return `<div class='optgroup-header'>${escape(d.label)}</div>'`;
                     }
                 }
             })
@@ -536,18 +621,12 @@ class View {
         this.tabsNavPrependMarker = $('#tabNavPrepend ');
         this.tabsContentPrependMarker = $('#tabContents');
 
-        this.courseModalSessionSelectInit = this.courseModalSessionSelectId.selectize({
-            create: false
-        });
+        this.courseModalSessionSelectInit = this.courseModalSessionSelectId.selectize();
         this.courseModalFacultySelectInit = this.courseModalFacultySelectId.selectize({
-            create: false,
             sortField: 'text'
         });
-        this.courseModalCareerSelectInit = this.courseModalCareerSelectId.selectize({
-            create: false,
-        });
+        this.courseModalCareerSelectInit = this.courseModalCareerSelectId.selectize();
         this.courseModalSearchInit = this.courseModalSearchId.selectize({
-            create: false,
             searchField: ["c","n"],
             maxItems: 1,
             sortField: 'c',
@@ -573,7 +652,7 @@ class View {
         this.courseModalCareerSelect = this.courseModalCareerSelectInit[0].selectize;
         this.courseModalSearchSelect = this.courseModalSearchInit[0].selectize;
 
-        this.courseUpdateDate.html(coursesUpdated);
+        //this.courseUpdateDate.html(coursesUpdated);
     }
 
     setInputOptions(id, array, selected, sort) {
@@ -655,7 +734,6 @@ class View {
     }
 
     checkPrereqs(selector, year, session) {
-        console.log("test");
         selector.find("a[data-coursecode]").each((i, e) => {
             let course = $(e).data('coursecode');
             if (app.model.courseCompleted(course, year, session)) {
@@ -832,6 +910,8 @@ class Controller {
             this.loadSave(this.model.save);
             $('#getStartedAlert').alert('close');
         }
+        $('#coursesUpdated').text(`v${version}/${dataVersion}`);
+        store.set('dataVersion', dataVersion);
     }
 
     loadSave(saveData) {
@@ -892,33 +972,49 @@ class Controller {
         const getRequirements = function() {
             let year = app.view.requirementsModal.yearSelect.val() == 2019 ? currentYearOptions : app.view.requirementsModal.yearSelect.val();
             let code = app.view.requirementsModal.searchSelectize[0].selectize.items[0];
-            let type = "";
-            if ((code.slice(code.length-3)) === "MAJ") {
-                type = "major";
-            } else if ((code.slice(code.length-3) === "MIN")) {
-                type = "minor";
+            if (app.model.isRequirementsCached(year, code)) {
+                app.view.requirementsModal.textContainer.removeClass("d-none");
+                app.view.requirementsModal.text.html(app.model.getCachedRequirementsHtml(year, code));
             } else {
-                type = "program";
-            }
-            let url = `/plan.php?c=${code}&y=${year}&t=${type}`;
-            app.view.requirementsModal.text.html("");
-            $.ajax({
-                type: 'GET',
-                url: url,
-                beforeSend: ()=> {
-                    app.view.requirementsModal.textContainer.addClass("d-none");
-                    app.view.requirementsModal.spinner.removeClass("d-none");
-                },
-                success: (data) => {
-                    app.view.requirementsModal.textContainer.removeClass("d-none");
-                    app.view.requirementsModal.spinner.addClass("d-none");
-                    app.view.requirementsModal.text.html(data);
-                    app.view.checkPrereqs(app.view.requirementsModal.text, "Summer Session", endYearOptions);
+                let type = "";
+                if ((code.slice(code.length-3)) === "MAJ") {
+                    type = "Major";
+                } else if ((code.slice(code.length-3) === "MIN")) {
+                    type = "Minor";
+                } else {
+                    type = "Program";
                 }
-            })
+                let url = `/plan.php?c=${code}&y=${year}&t=${type}`;
+                app.view.requirementsModal.text.html("");
+                $.ajax({
+                    type: 'GET',
+                    url: url,
+                    beforeSend: ()=> {
+                        app.view.requirementsModal.textContainer.addClass("d-none");
+                        app.view.requirementsModal.spinner.removeClass("d-none");
+                    },
+                    success: (data) => {
+                        app.view.requirementsModal.textContainer.removeClass("d-none");
+                        app.view.requirementsModal.spinner.addClass("d-none");
+                        app.view.requirementsModal.text.html(data);
+                        app.model.cacheRequirementsData(year, code, data, type);
+                    },
+                    error: (data) => {
+                        app.view.requirementsModal.textContainer.removeClass("d-none");
+                        app.view.requirementsModal.spinner.addClass("d-none");
+                        app.view.requirementsModal.text.html("A error has occured. Please try again later (sorry!)");
+                    }
+                });
+            }
+            app.view.checkPrereqs(app.view.requirementsModal.text, "Summer Session", endYearOptions);
         };
 
         this.view.requirementsModal.searchSelectize[0].selectize.on('item_add', getRequirements);
+        this.view.requirementsModal.searchSelectize[0].selectize.on('dropdown_open', (v)=>{
+            this.view.requirementsModal.searchSelectize[0].selectize.clear(true);
+            app.view.requirementsModal.searchSelectize[0].selectize.clearOptions();
+            app.view.requirementsModal.searchSelectize[0].selectize.addOption(app.model.getItemsForPlanSearch(app.view.requirementsModal.yearSelect.val()));
+        });
 
         this.view.buttonAddYear.on('click', ()=> {
             this.view.setInputOptions("#newYearSelect",this.model.getNewYearOptions(), currentYearOptions + "", false);
@@ -1044,6 +1140,7 @@ class Controller {
                     this.model.removeYear(year);
                     this.view.removeYear(year);
                 }
+                app.model.resetRequirementsCahce();
             }
         });
 
@@ -1155,7 +1252,6 @@ class Controller {
            let goal = $('#gpaModalGoalGPA').val();
            let unitsAvailable = 4*$('#gpaModalGoalSemesters').val();
            let grades = [0,0,0,0,unitsAvailable];
-           //console.log(`currentGPA: ${currentGPA}, currentUnits: ${currentUnits}, gpaGoal: ${goal}, unitsAv: ${unitsAvailable}, grades: ${grades}`);
            let result = app.model.getMinimumGrades(grades,goal,currentGPA,currentUnits,unitsAvailable);
            if (result.result) {
                 $('#gpaModalGoalResultGpa')

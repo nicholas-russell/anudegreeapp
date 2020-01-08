@@ -77,6 +77,13 @@
             border: none;
             border-radius: none;
         }
+        .optgroup-header {
+            font-size: 1.15em !important;
+            color: black !important;
+            font-weight: bold;
+            text-align: center;
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -109,7 +116,7 @@
                         <div class="col">
                             <div class="d-flex flex-row justify-content-between align-items-baseline">
                                 <h3>(Unofficial) ANU Degree Planner <small class="text-muted">beta</small></h3>
-                                <small class="text-muted align-text-bottom d-sm-block d-none"><em>Courses last updated <span id="coursesUpdated"></span></em></small>
+                                <small class="text-muted align-text-bottom d-sm-block d-none"><em><span id="coursesUpdated"></span></em></small>
                             </div>
                             <div class="alert alert-danger alert-dismissible fade show d-none" role="alert" id="localStorageAlert">
                                 <p><strong>Error: </strong>This browser is NOT supported currently because of localStorage limits. Please use Google Chrome/Firefox.</p>

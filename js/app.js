@@ -975,6 +975,7 @@ class Controller {
             if (app.model.isRequirementsCached(year, code)) {
                 app.view.requirementsModal.textContainer.removeClass("d-none");
                 app.view.requirementsModal.text.html(app.model.getCachedRequirementsHtml(year, code));
+                app.view.checkPrereqs(app.view.requirementsModal.text, "Summer Session", endYearOptions);
             } else {
                 let type = "";
                 if ((code.slice(code.length-3)) === "MAJ") {
@@ -998,6 +999,7 @@ class Controller {
                         app.view.requirementsModal.spinner.addClass("d-none");
                         app.view.requirementsModal.text.html(data);
                         app.model.cacheRequirementsData(year, code, data, type);
+                        app.view.checkPrereqs(app.view.requirementsModal.text, "Summer Session", endYearOptions);
                     },
                     error: (data) => {
                         app.view.requirementsModal.textContainer.removeClass("d-none");
@@ -1006,7 +1008,6 @@ class Controller {
                     }
                 });
             }
-            app.view.checkPrereqs(app.view.requirementsModal.text, "Summer Session", endYearOptions);
         };
 
         this.view.requirementsModal.searchSelectize[0].selectize.on('item_add', getRequirements);
@@ -1312,7 +1313,8 @@ class Controller {
         $('#reqBtn').on('click', ()=>{
             let yearsArr = Object.keys(app.model.save).length === 0 ? [currentYearOptions] : _.filter(Object.keys(app.model.save),(e)=>{return e <= currentYearOptions});
             let selected = app.view.requirementsModal.yearSelect.val() === "" ? yearsArr[0] : app.view.requirementsModal.yearSelect.val();
-            app.view.setInputOptions('#requirementsModalYearSelect',yearsArr,selected,false);
+            app.view.setInputOptions('#requirem' +
+                'entsModalYearSelect',yearsArr,selected,false);
             app.view.requirementsModal.searchSelectize[0].selectize.clearOptions();
             app.view.requirementsModal.searchSelectize[0].selectize.addOption(app.model.getItemsForPlanSearch(app.view.requirementsModal.yearSelect.val()));
             app.view.checkPrereqs(app.view.requirementsModal.text, endYearOptions, "Summer Session");

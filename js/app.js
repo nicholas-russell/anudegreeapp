@@ -209,6 +209,10 @@ class Model {
         }
     }
 
+    courseAvailableInSession(code, year, session) {
+        return this.getCourseListForYear(year)[_.findIndex(this.courses[year], {c: code})].s.includes(session);
+    }
+
     hasCourses(year, session) {
         return this.save[year]["sessions"][_.findIndex(this.save[year]["sessions"], {type: session})].courses.length !== 0;
     }
@@ -565,6 +569,45 @@ class View {
         this.courseModalRequirements = $("#requirementsText");
         this.courseUpdateDate = $('#coursesUpdated');
 
+        this.courseModal2 = {
+            planTab: {
+                yearSelect: $('#courseModalPlanYearSelect'),
+                search: $('#courseModalPlanSearch').selectize({
+                    searchField: ["n","c"],
+                    maxItems: 1,
+                    sortField: 'c',
+                    valueField: 'c',
+                    labelField: 'n',
+                    optgroups: [
+                        {value: 'prev', label: 'History'},
+                        {value: 'curr', label: 'Results'},
+                    ],
+                    lockOptgroupOrder: true,
+                    optgroupField: 'group',
+                    render: {
+                        item: (c, escape) => {
+                            return `<div><strong>${escape(c.c)}</strong> ${escape(c.n)}</div>`;
+                        },
+                        option: (c, escape) => {
+                            return `<div class="ml-2 my-1">
+                                <strong>${escape(c.c)}</strong>  ${escape(c.n)}
+                                <br/>
+                                <small><strong>Level: </strong> ${escape(c.l)}</small>
+                            </div>`;
+                        },
+                        optgroup_header: (d, escape) => {
+                            return `<div></div>`;
+                            //return `<div class='optgroup-header'>${escape(d.label)}</div>'`;
+                        }
+                    }
+                }),
+                textContainer: $('#courseModalPlanTextContainer'),
+                requirementsText: $('#courseModalPlanText'),
+                spinner: $('#courseModalPlanSpinner'),
+                code: $('#courseCodeHolder'),
+            }
+        };
+
         this.yearModal = $('#yearSelectModal');
         this.buttonAddYear = $('#add-year');
         this.buttonYearModalAdd = $('#newYearModalAddBtn');
@@ -733,13 +776,26 @@ class View {
         $(`#year_${year}-tab`).fadeOutAndRemove('fast');
     }
 
-    checkPrereqs(selector, year, session) {
+    checkPrereqs(selector, year, session, mode) {
         selector.find("a[data-coursecode]").each((i, e) => {
             let course = $(e).data('coursecode');
-            if (app.model.courseCompleted(course, year, session)) {
-                $(e).addClass("text-success").removeClass("text-danger");
-            } else {
-                $(e).addClass("text-danger").removeClass("text-success");
+            if (mode === "reqs") {
+                if (app.model.courseCompleted(course, year, session)) {
+                    $(e).addClass("text-success").removeClass("text-danger");
+                } else {
+                    $(e).addClass("text-danger").removeClass("text-success");
+                }
+            } else if (mode === "addcourse") {
+                if (app.model.courseCompleted(course, year, session)) { // course completed
+                    $(e).removeClass().addClass("text-success");
+                } else {
+                    if (app.model.courseAvailableInSession(course,session,year)) {
+                        $(e).removeClass().addClass("text-primary");
+                    } else {
+                        $(e).removeClass().addClass("text-secondary");
+                    }
+                }
+                $(e).after("<button class='btn btn-outline-primary btn-sm ml-2'>Add course</button>");
             }
         });
     }
@@ -958,7 +1014,7 @@ class Controller {
                     $('#courseSelectReqSpinner').addClass("d-none");
                     $('#courseSelectReqText').removeClass("d-none");
                     app.view.courseModalRequirements.html(data);
-                    app.view.checkPrereqs(app.view.courseModalRequirements, app.currentSession, app.currentYear);
+                    app.view.checkPrereqs(app.view.courseModalRequirements, app.currentSession, app.currentYear, "reqs");
                 },
                 error: (xhr) => {
                     console.error(xhr);
@@ -975,7 +1031,7 @@ class Controller {
             if (app.model.isRequirementsCached(year, code)) {
                 app.view.requirementsModal.textContainer.removeClass("d-none");
                 app.view.requirementsModal.text.html(app.model.getCachedRequirementsHtml(year, code));
-                app.view.checkPrereqs(app.view.requirementsModal.text, "Summer Session", endYearOptions);
+                app.view.checkPrereqs(app.view.requirementsModal.text, "Summer Session", endYearOptions, "reqs");
             } else {
                 let type = "";
                 if ((code.slice(code.length-3)) === "MAJ") {
@@ -995,16 +1051,16 @@ class Controller {
                         app.view.requirementsModal.spinner.removeClass("d-none");
                     },
                     success: (data) => {
-                        app.view.requirementsModal.textContainer.removeClass("d-none");
-                        app.view.requirementsModal.spinner.addClass("d-none");
                         app.view.requirementsModal.text.html(data);
+                        app.view.checkPrereqs(app.view.requirementsModal.text, "Summer Session", endYearOptions, "reqs");
+                        app.view.requirementsModal.spinner.addClass("d-none");
+                        app.view.requirementsModal.textContainer.removeClass("d-none");
                         app.model.cacheRequirementsData(year, code, data, type);
-                        app.view.checkPrereqs(app.view.requirementsModal.text, "Summer Session", endYearOptions);
                     },
-                    error: (data) => {
+                    error: () => {
                         app.view.requirementsModal.textContainer.removeClass("d-none");
                         app.view.requirementsModal.spinner.addClass("d-none");
-                        app.view.requirementsModal.text.html("A error has occured. Please try again later (sorry!)");
+                        app.view.requirementsModal.text.html("A error has occurred. Please try again later (sorry!)");
                     }
                 });
             }
@@ -1012,10 +1068,62 @@ class Controller {
 
         this.view.requirementsModal.searchSelectize[0].selectize.on('item_add', getRequirements);
         this.view.requirementsModal.searchSelectize[0].selectize.on('dropdown_open', (v)=>{
-            this.view.requirementsModal.searchSelectize[0].selectize.clear(true);
+            app.view.requirementsModal.searchSelectize[0].selectize.clear(true);
             app.view.requirementsModal.searchSelectize[0].selectize.clearOptions();
             app.view.requirementsModal.searchSelectize[0].selectize.addOption(app.model.getItemsForPlanSearch(app.view.requirementsModal.yearSelect.val()));
         });
+
+
+        this.view.courseModal2.planTab.search[0].selectize.on('item_add', () => {
+            let planTab = app.view.courseModal2.planTab;
+
+            let year = planTab.yearSelect.val() == 2019 ? currentYearOptions : planTab.yearSelect.val();
+            let code = planTab.search[0].selectize.items[0];
+            if (app.model.isRequirementsCached(year, code)) {
+                planTab.textContainer.removeClass("d-none");
+                planTab.requirementsText.html(app.model.getCachedRequirementsHtml(year, code));
+                app.view.checkPrereqs(planTab.requirementsText,this.currentSession, this.currentYear, "addcourse");
+            } else {
+                let type = "";
+                if ((code.slice(code.length-3)) === "MAJ") {
+                    type = "Major";
+                } else if ((code.slice(code.length-3) === "MIN")) {
+                    type = "Minor";
+                } else {
+                    type = "Program";
+                }
+                let url = `/plan.php?c=${code}&y=${year}&t=${type}`;
+
+                planTab.requirementsText.html("");
+                $.ajax({
+                    type: 'GET',
+                    url: url,
+                    beforeSend: ()=> {
+                        planTab.spinner.removeClass("d-none");
+                        planTab.textContainer.addClass("d-none");
+                    },
+                    success: (data) => {
+                        planTab.requirementsText.html(data);
+                        app.view.checkPrereqs(planTab.requirementsText,this.currentSession, this.currentYear, "addcourse");
+                        planTab.spinner.addClass("d-none");
+                        planTab.textContainer.removeClass("d-none");
+                        app.model.cacheRequirementsData(year, code, data, type);
+                    },
+                    error: () => {
+                        planTab.spinner.addClass("d-none");
+                        planTab.textContainer.removeClass("d-none");
+                        planTab.requirementsText.html("A error has occurred. Please try again later (sorry!)");
+                    }
+                });
+            }
+        });
+        this.view.courseModal2.planTab.search[0].selectize.on('dropdown_open', () => {
+            app.view.courseModal2.planTab.search[0].selectize.clear(true);
+            app.view.courseModal2.planTab.search[0].selectize.clearOptions();
+            app.view.courseModal2.planTab.search[0].selectize.addOption(app.model.getItemsForPlanSearch(app.view.courseModal2.planTab.yearSelect.val()));
+        });
+
+
 
         this.view.buttonAddYear.on('click', ()=> {
             this.view.setInputOptions("#newYearSelect",this.model.getNewYearOptions(), currentYearOptions + "", false);
@@ -1080,6 +1188,12 @@ class Controller {
             this.view.courseModalSessionSelect.clear(true);
             this.view.courseModalSessionSelect.addItem(this.currentSession, false);
 
+            let yearsArr = Object.keys(app.model.save).length === 0 ? [currentYearOptions] : _.filter(Object.keys(app.model.save),(e)=>{return e <= currentYearOptions});
+            let selected = app.view.courseModal2.planTab.yearSelect.val() === "" ? yearsArr[0] : app.view.courseModal2.planTab.yearSelect.val();
+            app.view.setInputOptions('#courseModalPlanYearSelect',yearsArr,selected,false);
+            app.view.courseModal2.planTab.search[0].selectize.clearOptions();
+            app.view.courseModal2.planTab.search[0].selectize.addOption(app.model.getItemsForPlanSearch(app.view.courseModal2.planTab.yearSelect.val()));
+            app.view.checkPrereqs(app.view.courseModal2.planTab.requirementsText,this.currentSession, this.currentYear, "addcourse");
             this.currentYear > currentYearOptions ? $('#courseSelectWarning').removeClass('d-none') : $('#courseSelectWarning').addClass('d-none');
             this.view.courseModal.modal();
             this.view.buttonCourseModalAdd.one('click', (e)=> {
@@ -1313,11 +1427,9 @@ class Controller {
         $('#reqBtn').on('click', ()=>{
             let yearsArr = Object.keys(app.model.save).length === 0 ? [currentYearOptions] : _.filter(Object.keys(app.model.save),(e)=>{return e <= currentYearOptions});
             let selected = app.view.requirementsModal.yearSelect.val() === "" ? yearsArr[0] : app.view.requirementsModal.yearSelect.val();
-            app.view.setInputOptions('#requirem' +
-                'entsModalYearSelect',yearsArr,selected,false);
+            app.view.setInputOptions('#requirementsModalYearSelect',yearsArr,selected,false);
             app.view.requirementsModal.searchSelectize[0].selectize.clearOptions();
             app.view.requirementsModal.searchSelectize[0].selectize.addOption(app.model.getItemsForPlanSearch(app.view.requirementsModal.yearSelect.val()));
-            app.view.checkPrereqs(app.view.requirementsModal.text, endYearOptions, "Summer Session");
             app.view.requirementsModal.modal.modal();
         });
 

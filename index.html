@@ -226,18 +226,31 @@
                                 <div class="row pr-2">
                                     <div class="col-sm-3 col">
                                         <div class="form-group row">
-                                            <label for="requirementsModalYearSelect" class="col-sm-auto col col-form-label">Year</label>
-                                            <select id="courseModalYearSelect" class="col form-control">
+                                            <label for="courseModalPlanYearSelect" class="col-sm-auto col col-form-label">Year</label>
+                                            <select id="courseModalPlanYearSelect" class="col form-control">
                                             </select>
                                         </div>
                                     </div>
                                     <div class="col-sm-9 col">
                                         <div class="form-group row">
-                                            <label for="requirementsModalSearch" class="col-sm-auto col col-form-label">Search</label>
-                                            <input type="text" class="form-control col" id="courseModalSearch"/>
+                                            <label for="courseModalPlanSearch" class="col-sm-auto col col-form-label">Search</label>
+                                            <input type="text" class="form-control col" id="courseModalPlanSearch"/>
                                         </div>
                                     </div>
                                 </div>
+                                <div class="row d-none" id="courseModalPlanTextContainer">
+                                    <div class="col overflow-auto mb-2 border" style="height: 300px">
+                                        <span id="courseModalPlanText"></span>
+                                    </div>
+                                </div>
+                                <div class="row justify-content-center d-none" id="courseModalPlanSpinner">
+                                    <div class="col-auto">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="sr-only">Loading...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <span class="d-none" id="courseCodeHolder"></span>
                             </div>
                             <div class="tab-pane fade" id="courseModalTabSearch" role="tabpanel" aria-labelledby="courseModalNavSearchPill">
                                 <div class="row">

@@ -778,6 +778,7 @@ class View {
 
     checkPrereqs(selector, year, session, mode) {
         selector.find("a[data-coursecode]").each((i, e) => {
+            $(e).next("button[data-action='add-course-plan']").remove();
             let course = $(e).data('coursecode');
             if (mode === "reqs") {
                 if (app.model.courseCompleted(course, year, session)) {
@@ -791,11 +792,11 @@ class View {
                 } else {
                     if (app.model.courseAvailableInSession(course,session,year)) {
                         $(e).removeClass().addClass("text-primary");
+                        $(e).after("<button class='btn btn-outline-primary btn-sm ml-2' data-action='add-course-plan'>Select</button>");
                     } else {
                         $(e).removeClass().addClass("text-secondary");
                     }
                 }
-                $(e).after("<button class='btn btn-outline-primary btn-sm ml-2'>Add course</button>");
             }
         });
     }

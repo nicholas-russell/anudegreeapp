@@ -209,7 +209,7 @@ class Model {
         }
     }
 
-    courseAvailableInSession(code, year, session) {
+    courseAvailableInSession(code, session, year) {
         return this.getCourseListForYear(year)[_.findIndex(this.courses[year], {c: code})].s.includes(session);
     }
 
@@ -605,6 +605,12 @@ class View {
                 requirementsText: $('#courseModalPlanText'),
                 spinner: $('#courseModalPlanSpinner'),
                 code: $('#courseCodeHolder'),
+                courseRequirements: {
+                    textContainer: $('#courseModalPlanReqTextContainer'),
+                    text: $('#courseModalPlanReqText'),
+                    spinner: $('#courseModalPlanReqSpinner')
+                },
+                isActive: () => {return $('#courseModalNavPlanPill').hasClass("active")}
             }
         };
 
@@ -658,7 +664,7 @@ class View {
                         //return `<div class='optgroup-header'>${escape(d.label)}</div>'`;
                     }
                 }
-            })
+            }),
         };
 
         this.tabsNavPrependMarker = $('#tabNavPrepend ');
@@ -776,27 +782,38 @@ class View {
         $(`#year_${year}-tab`).fadeOutAndRemove('fast');
     }
 
-    checkPrereqs(selector, year, session, mode) {
+    checkPrereqs(selector, session, year, mode) {
         selector.find("a[data-coursecode]").each((i, e) => {
             $(e).next("button[data-action='add-course-plan']").remove();
             let course = $(e).data('coursecode');
-            if (mode === "reqs") {
-                if (app.model.courseCompleted(course, year, session)) {
-                    $(e).addClass("text-success").removeClass("text-danger");
-                } else {
-                    $(e).addClass("text-danger").removeClass("text-success");
-                }
-            } else if (mode === "addcourse") {
-                if (app.model.courseCompleted(course, year, session)) { // course completed
-                    $(e).removeClass().addClass("text-success");
-                } else {
-                    if (app.model.courseAvailableInSession(course,session,year)) {
-                        $(e).removeClass().addClass("text-primary");
-                        $(e).after("<button class='btn btn-outline-primary btn-sm ml-2' data-action='add-course-plan'>Select</button>");
+            try {
+                let courseModel = app.model.getCourseModel(year,course);
+                //$(e).attr("data-toggle","tooltip").attr("data-html","true").attr("title",`Available ${courseModel.s} ${year === endYearOptions ? "" : '(' + year + ')'}`).tooltip();
+                if (mode === "reqs") {
+                    if (app.model.courseCompleted(course, session, year)) {
+                        $(e).addClass("text-success").removeClass("text-danger");
                     } else {
-                        $(e).removeClass().addClass("text-secondary");
+                        $(e).addClass("text-danger").removeClass("text-success");
+                    }
+                } else if (mode === "addcourse") {
+                    if (app.model.courseCompleted(course, session, year)) { // course completed
+                        $(e).removeClass().addClass("text-success");
+                    } else {
+                        if (app.model.courseAvailableInSession(course,session,year)) {
+                            $(e).removeClass().addClass("text-primary");
+                            $(e).after(`<button class='btn btn-outline-primary btn-sm ml-2' data-action='add-course-plan' data-coursecode='${course}'>Select</button>`);
+                        } else {
+                            $(e).removeClass().addClass("text-secondary");
+                        }
                     }
                 }
+            } catch (error) {
+                $(e).removeClass()
+                    .addClass(["text-secondary","text-strikethrough"])
+                    .attr("data-toggle","tooltip")
+                    .attr("title","Course discontinued")
+                    .tooltip();
+                console.warn(`Failure to get course model for ${course} ${year}, probably because it is been discontinued.`);
             }
         });
     }
@@ -1127,7 +1144,13 @@ class Controller {
 
 
         this.view.buttonAddYear.on('click', ()=> {
-            this.view.setInputOptions("#newYearSelect",this.model.getNewYearOptions(), currentYearOptions + "", false);
+            let currentYears = app.model.getCurrentYears();
+            //console.log(_.indexOf(currentYears, currentYearOptions.toString()) === -1 ? currentYearOptions : parseInt(currentYears.pop()) +1);
+            this.view.setInputOptions(
+                "#newYearSelect",
+                this.model.getNewYearOptions(),
+                (_.indexOf(currentYears, currentYearOptions.toString()) === -1 ? currentYearOptions : parseInt(currentYears.pop()) +1).toString(),
+                false);
             this.view.yearModal.modal();
             this.view.buttonYearModalAdd.one('click', (e)=> {
                 this.view.yearModal.hide();
@@ -1199,7 +1222,7 @@ class Controller {
             this.view.courseModal.modal();
             this.view.buttonCourseModalAdd.one('click', (e)=> {
                 this.view.courseModal.hide();
-                let newCourse = this.view.courseModalSearchSelect.items[0];
+                let newCourse = app.view.courseModal2.planTab.isActive() ? app.view.courseModal2.planTab.code.text() : this.view.courseModalSearchSelect.items[0];
                 if (newCourse != null) {
                     this.model.addNewCourse(this.currentYear,this.currentSession,newCourse);
                     this.view.addCourseToTable(this.currentYear,this.currentSession,this.model.getCourseModel(this.currentYear,newCourse));
@@ -1213,6 +1236,34 @@ class Controller {
             this.view.buttonCourseModalCancel.one('click', (e)=> {
                 this.view.buttonCourseModalAdd.off('click');
             });
+        });
+
+        $(document).on('click','[data-action="add-course-plan"]', (e)=>{
+            let code = $(e.target).data('coursecode');
+            app.view.courseModal2.planTab.code.text("").text(code);
+            let v = app.view.courseModal2.planTab.courseRequirements;
+
+            v.textContainer.addClass('d-none');
+            let year = app.currentYear > currentYearOptions || app.currentYear == 2019 ? currentYearOptions : app.currentYear;
+            v.text.html("");
+            $.ajax({
+                type: 'GET',
+                url: `/req.php?c=${code}&y=${year}`,
+                beforeSend: () => {
+                    v.spinner.removeClass("d-none");
+                },
+                success: (r) => {
+                    v.text.html(r);
+                    app.view.checkPrereqs(v.text,app.currentSession,app.currentYear, "reqs");
+                    v.spinner.addClass("d-none");
+                    v.textContainer.removeClass("d-none");
+                },
+                error: (r) => {
+                    console.error(r);
+                    v.spinner.addClass("d-none");
+                    v.text.html("A error has occurred, please try again later!");
+                }
+            })
         });
 
         $(document).on('click', '.removeCourse', (e)=>{

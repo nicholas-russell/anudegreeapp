@@ -1,0 +1,5 @@
+php/simple_html_dom.php linguist-vendored
+scraper/composer.json linguist-generated
+scraper/composer.lock linguist-generated
+scraper/simple_html_dom.php linguist-vendored
+js/data/* linguist-generated

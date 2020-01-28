@@ -84,6 +84,9 @@
             text-align: center;
             text-decoration: underline;
         }
+        .text-strikethrough {
+            text-decoration: line-through;
+        }
     </style>
 </head>
 <body>
@@ -245,6 +248,17 @@
                                 </div>
                                 <div class="row justify-content-center d-none" id="courseModalPlanSpinner">
                                     <div class="col-auto">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="sr-only">Loading...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row justify-content-center">
+                                    <div class="col-sm-12 d-none" id="courseModalPlanReqTextContainer">
+                                        <h6>Requirements</h6>
+                                        <span id="courseModalPlanReqText"></span>
+                                    </div>
+                                    <div class="col-auto d-none" id="courseModalPlanReqSpinner">
                                         <div class="spinner-border text-primary" role="status">
                                             <span class="sr-only">Loading...</span>
                                         </div>
@@ -447,21 +461,22 @@
                                                 </div>
                                             </div>
                                         </div>
+                                        <div class="row justify-content-center">
+                                            <div class="col-sm-12 d-none" id="courseSelectReqText">
+                                                <h6>Requirements</h6>
+                                                <span id="requirementsText"></span>
+                                            </div>
+                                            <div class="col-auto d-none" id="courseSelectReqSpinner">
+                                                <div class="spinner-border text-primary" role="status">
+                                                    <span class="sr-only">Loading...</span>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="row justify-content-center">
-                            <div class="col-sm-12 d-none" id="courseSelectReqText">
-                                <h6>Requirements</h6>
-                                <span id="requirementsText"></span>
-                            </div>
-                            <div class="col-auto d-none" id="courseSelectReqSpinner">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="sr-only">Loading...</span>
-                                </div>
-                            </div>
-                        </div>
+
                     </div>
                 </div>
             </div>

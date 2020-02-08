@@ -33,9 +33,9 @@ const DATA_LEVEL_TYPES = {
 };
 const RETURN_CODES = {
     NOT_EXISTS: {
-        YEAR: -102,
-        SESSION: -103,
-        COURSE: -105
+        YEAR: -401,
+        SESSION: -402,
+        COURSE: -403
     },
     EXISTS_ALREADY: {
         YEAR: -105,
@@ -43,12 +43,12 @@ const RETURN_CODES = {
         COURSE: -107
     },
     REMOVED: {
-        YEAR: -108,
-        SESSION: -109,
-        COURSE: -110
+        YEAR: -201,
+        SESSION: -202,
+        COURSE: -203
     },
     DATA_NOT_FOUND: {
-        COURSE_MODEL: -111,
+        COURSE_MODEL: -404,
     }
 };
 
@@ -544,7 +544,11 @@ class Model {
                 return RETURN_CODES.NOT_EXISTS.SESSION;
             }
         }
-        return this.store.years[yearIndex].sessions[sessionIndex].courses.push(Course(code, mark)) - 1;
+        if (this.getCourseIndex(year, session, code) >= 0) {
+            return RETURN_CODES.EXISTS_ALREADY.COURSE;
+        } else {
+            return this.store.years[yearIndex].sessions[sessionIndex].courses.push(Course(code, mark)) - 1;
+        }
     }
 
     /**
@@ -557,7 +561,6 @@ class Model {
     getCourseIndex(year, session, code) {
         let sessionIndex = this.getSessionIndex(year, session);
         if (sessionIndex >= 0) {
-            // session exists, so lets check for the course
             let yearIndex = this.getYearIndex(year);
             let index = _.findIndex(this.store.years[yearIndex].sessions[sessionIndex].courses, (courseIteration) => {
                 return courseIteration.code === code;
@@ -615,26 +618,46 @@ class Model {
     
     getNewYearOptions() {
         // returns possible new year combinations
+        return _.difference(YEAR_LIST, this.getCurrentYears());
     }
     
     getNewSessionOptions(year) {
-        // gets possible sessions given year
+        let yearIndex = this.getYearIndex(year);
+        console.log(yearIndex);
+        if (yearIndex === RETURN_CODES.NOT_EXISTS.YEAR) {
+            console.log('returning default');
+            return DEFAULT_SESSION_ORDER;
+        } else {
+            return _.difference(DEFAULT_SESSION_ORDER, _.map(this.store.years[yearIndex].sessions, (session) => {
+                return session.name;
+            }));
+        }
     }
     
     getCurrentYears() {
-        // returns list of current new years
+        return _.map(this.store.years, (year) => {
+            return year.name;
+        })
     }
     
     isCourseAvailableInSession(year, session, code) {
-        // is the course available in the current session
+        let courseData = this.getCourseData(year,code);
+        if (courseData === RETURN_CODES.DATA_NOT_FOUND.COURSE_MODEL) {
+            console.error(`${code} does not exist for ${year}`);
+            return false;
+        } else {
+            return courseData.sessions.includes(session);
+        }
     }
 
     isSessionEmpty(year, session) {
-        // checks if session is empty
+        let sessionIndex = this.getSessionIndex(year, session);
+        return sessionIndex < 0 ? sessionIndex : this.store.years[this.getYearIndex(year)].sessions[sessionIndex].courses.length === 0
     }
 
     isYearEmpty(year) {
-        // checks if year is empty
+        let yearIndex = this.getYearIndex(year);
+        return yearIndex < 0 ? yearIndex : this.store.years[yearIndex].sessions.length === 0;
     }
 
     getDataSummary() {

@@ -13,14 +13,15 @@
     CONSTANTS
  *********************************/
 const DATA_UPDATED = "03/01/2020";
-const DATA_VERSION = 1;
+const DATA_VERSION = 2;
 const APP_VERSION = 0.2;
 const DATA_NAMES = ["courses", "majors", "minors", "programs"];
 
-const START_YEAR_OPTIONS = 2017;
-const CURRENT_YEAR_OPTIONS = 2020;
-const END_YEAR_OPTIONS = 2025;
+const START_YEAR_DATA = "2017";
+const CURRENT_YEAR = "2020";
+const END_YEAR_DATA= "2020";
 
+const YEAR_LIST = ["STE", "2017", "2018", "2019", "2020", "2021", "2022", "2023", "2024"];
 const DEFAULT_SESSION_ORDER = ["First Semester","Second Semester","Summer Session","Winter Session","Autumn Session","Spring Session"];
 const TIME_SESSION_ORDER = ["First Semester","Autumn Session","Winter Session","Second Semester","Spring Session","Summer Session"];
 const GRADE_MARKS = [7,6,5,4,0];
@@ -29,6 +30,26 @@ const DATA_LEVEL_TYPES = {
     YEAR: "year",
     SESSION: "session",
     COURSE: "course"
+};
+const RETURN_CODES = {
+    NOT_EXISTS: {
+        YEAR: -102,
+        SESSION: -103,
+        COURSE: -105
+    },
+    EXISTS_ALREADY: {
+        YEAR: -105,
+        SESSION: -106,
+        COURSE: -107
+    },
+    REMOVED: {
+        YEAR: -108,
+        SESSION: -109,
+        COURSE: -110
+    },
+    DATA_NOT_FOUND: {
+        COURSE_MODEL: -111,
+    }
 };
 
 /*********************************
@@ -70,6 +91,7 @@ jQuery.fn.fadeOutAndRemove = function(speed){
         $(this).remove();
     })
 };
+
 /**
  * Initialises tooltips.
  */
@@ -320,6 +342,16 @@ function generateHtmlTable(data, colLabel, rowTotal, colTotal, sort) {
     return html;
 }
 
+function getDataSource(year) {
+    if (year > END_YEAR_DATA) {
+        return END_YEAR_DATA;
+    } else if(year < START_YEAR_DATA) {
+       return START_YEAR_DATA;
+    } else {
+        return year;
+    }
+}
+
 /*********************************
     DATA TYPE DECLARATIONS
  *********************************/
@@ -327,16 +359,15 @@ function Year(name, dataName) {
     return {
         name: name,
         dataSrc: dataName,
-        type: LEVEL_TYPES.YEAR,
+        type: DATA_LEVEL_TYPES.YEAR,
         sessions: []
     }
 }
 
-function Session(name, dataName) {
+function Session(name) {
     return {
         name: name,
-        dataSrc: dataName,
-        type: LEVEL_TYPES.SESSION,
+        type: DATA_LEVEL_TYPES.SESSION,
         courses: []
     }
 }
@@ -358,20 +389,12 @@ class Model {
             years: [],
             requirements: {}
         };
-        this.data = {
-            courses: {},
-            majors: {},
-            minors: {},
-            programs: {},
-        };
+        this.data = {};
     }
 
     _commit() {
         // saves current store to localStorage
-    }
-
-    loadData() {
-        // loads in data from JSON files via ajax
+        localStorage.setItem('degree_plan', JSON.stringify(this.store));
     }
 
     setMarkForCourse(year, session, code, courseMark) {
@@ -382,40 +405,212 @@ class Model {
         // get mark for course
     }
 
-    addYear(year, dataSource=year) {
-        // add new year
+    /**
+     * Adds a year to the model store
+     * @param year The year to add
+     * @param dataSource The year to source data from, default to same as year
+     * @returns {number} Returns index of added year, or -1 if year already exists.
+     */
+    addYear(year, dataSource=getDataSource(year)) {
+        if (this.getYearIndex(year) === RETURN_CODES.NOT_EXISTS.YEAR) {
+            return this.store.years.push(Year(year, dataSource)) -1;
+        } else {
+            console.warn(`${year} already exists`);
+            return RETURN_CODES.EXISTS_ALREADY.YEAR;
+        }
     }
 
+    /**
+     * Gets the index of the year in the store.years array
+     * @param year The yearName to search for
+     * @returns {number} The index, or -1 if it doesn't exist.
+     */
     getYearIndex(year) {
-        
+        let index = _.findIndex(this.store.years, (yearIteration) => {
+           return yearIteration.name === year;
+        });
+        return index === -1 ? RETURN_CODES.NOT_EXISTS.YEAR : index;
     }
-    
+
+    /**
+     * Removes a year from the store
+     * @param year The year to remove matching the name
+     * @returns {number} True if removes, False if it didn't exist
+     */
     removeYear(year) {
-        // removes year from store
+        let yearIndex = this.getYearIndex(year);
+        if (yearIndex === -1) {
+            console.warn(`${year} does not exist to remove!`);
+            return RETURN_CODES.NOT_EXISTS.YEAR;
+        } else {
+            this.store.years.splice(yearIndex,1);
+            return RETURN_CODES.REMOVED.YEAR;
+        }
     }
 
-    addSession(year, session, forceAdd=false, dataSource=session) {
-        // add new session
+    /**
+     * Adds a session to the store for the given year.
+     * @param year The year to add
+     * @param session The session name
+     * @param yearIndex
+     * @param forceAdd {boolean} If true, will add even if the year doesn't exist.
+     * @returns {number} Index of added session, -1 if session exists, -2 if year doesn't exist
+     */
+    addSession(year, session, yearIndex=this.getYearIndex(year), forceAdd=false) {
+        if (yearIndex === RETURN_CODES.NOT_EXISTS.YEAR) {
+            console.warn(`Warning: ${year} does not exist to add ${session} to`);
+            if (forceAdd) {
+                console.warn('--> Adding anyway as force is true');
+                yearIndex = this.addYear(year);
+            } else {
+                return RETURN_CODES.NOT_EXISTS.YEAR;
+            }
+        }
+        if (this.getSessionIndex(year, session) === RETURN_CODES.NOT_EXISTS.SESSION) {
+            return this.store.years[yearIndex].sessions.push(Session(session)) -1;
+        } else {
+            return RETURN_CODES.EXISTS_ALREADY.SESSION;
+        }
     }
 
-    getSessionIndex(year, session, yearIndexValue=undefined) {
-        
-    }
-    
-    removeSession(year, session) {
-        // remove session
+    /**
+     * Gets the index of a session in a year
+     * @param year The year the session is in
+     * @param session The name of the session
+     * @param yearIndex The yearIndex, if not defined in function call will get it.
+     * @returns {number} Returns index, -2 if year doesn't exist or -1 if the session already exists.
+     */
+    getSessionIndex(year, session, yearIndex=this.getYearIndex(year)) {
+        if (yearIndex === RETURN_CODES.NOT_EXISTS.YEAR) {
+            console.warn(`${year} doesn't exist`);
+            return RETURN_CODES.NOT_EXISTS.YEAR;
+        } else {
+            let index = _.findIndex(this.store.years[yearIndex].sessions, (sessionIteration) => {
+                return sessionIteration.name === session;
+            });
+            return index === -1 ? RETURN_CODES.NOT_EXISTS.SESSION : index;
+        }
     }
 
-    addCourse(year, session, code, forceAdd=false, mark=undefined) {
-        // add course
+    /**
+     * Removes a session from the model.
+     * @param year The year the session is in
+     * @param session The name of the session
+     * @param yearIndex The yearIndex, if not defined in function call will get it.
+     * @returns {number} False if year/session doesn't exist, true if removed.
+     */
+    removeSession(year, session, yearIndex=this.getYearIndex(year)) {
+        if (yearIndex === RETURN_CODES.NOT_EXISTS.YEAR) {
+            console.warn(`${year} doesn't exist to remove ${session} from!`);
+            return RETURN_CODES.NOT_EXISTS.YEAR;
+        }
+        let sessionIndex = this.getSessionIndex(year, session, yearIndex);
+        if (sessionIndex === RETURN_CODES.NOT_EXISTS.SESSION) {
+            console.warn(`${session} doesn't exist in ${year} to remove`);
+            return RETURN_CODES.NOT_EXISTS.SESSION;
+        } else {
+            this.store.years[yearIndex].sessions.splice(sessionIndex, 1);
+            return RETURN_CODES.REMOVED.SESSION;
+        }
     }
-    
+
+    /**
+     * Adds a course to the model
+     * @param year The year of the session
+     * @param session The session to add the course to
+     * @param code The code of the course
+     * @param forceAdd If true, will add even if year/session doesn't exist.
+     * @param mark The mark of the course, if set
+     * @returns {number} Index of course added, -2 if year doesn't exist, -1 if session doesn't exist
+     */
+    addCourse(year, session, code, forceAdd=false, mark=null) {
+        let yearIndex = this.getYearIndex(year);
+        if (yearIndex === RETURN_CODES.NOT_EXISTS.YEAR) {
+            console.warn(`Warning: ${year} does not exist`);
+            if (forceAdd) {
+                console.warn(`--> Adding ${year} as force is true`);
+                yearIndex = this.addYear(year);
+            } else {
+                return RETURN_CODES.NOT_EXISTS.YEAR;
+            }
+        }
+        let sessionIndex = this.getSessionIndex(year, session,yearIndex);
+        if (sessionIndex === RETURN_CODES.NOT_EXISTS.SESSION) {
+            console.warn(`Warning: ${year} ${session} does not exist`);
+            if (forceAdd) {
+                console.warn(`--> Adding ${session} as force is true`);
+                sessionIndex = this.addSession(year, session, yearIndex);
+            } else {
+                return RETURN_CODES.NOT_EXISTS.SESSION;
+            }
+        }
+        return this.store.years[yearIndex].sessions[sessionIndex].courses.push(Course(code, mark)) - 1;
+    }
+
+    /**
+     * Returns course index given year and session
+     * @param year The year the course is in
+     * @param session The session the course is in
+     * @param code The course code
+     * @returns {number} The index, or a return code.
+     */
+    getCourseIndex(year, session, code) {
+        let sessionIndex = this.getSessionIndex(year, session);
+        if (sessionIndex >= 0) {
+            // session exists, so lets check for the course
+            let yearIndex = this.getYearIndex(year);
+            let index = _.findIndex(this.store.years[yearIndex].sessions[sessionIndex].courses, (courseIteration) => {
+                return courseIteration.code === code;
+            });
+            return index === -1 ? RETURN_CODES.NOT_EXISTS.COURSE : index;
+        } else {
+            return sessionIndex;
+        }
+    }
+
+    /**
+     * Removes course from store
+     * @param year The year the course is in
+     * @param session The session the course is in
+     * @param code The course code
+     * @returns {number} A return code.
+     */
     removeCourse(year, session, code) {
-        // remove course
+        let courseIndex = this.getCourseIndex(year, session, code);
+        if (courseIndex >= 0) {
+            let yearIndex = this.getYearIndex(year);
+            let sessionIndex = this.getSessionIndex(year, session, yearIndex);
+            this.store.years[yearIndex].sessions[sessionIndex].courses.splice(courseIndex, 1);
+            return RETURN_CODES.REMOVED.COURSE;
+        } else {
+            return courseIndex;
+        }
     }
     
     getCourseData(year, code) {
         // returns a data model for the course
+        let yearIndex = this.getYearIndex(year);
+        let dataSource = year;
+        if (yearIndex >= 0) {
+            dataSource = this.store.years[yearIndex].dataSrc;
+        } else {
+            dataSource = getDataSource(year);
+        }
+        console.log(dataSource);
+        let courseModel = _.find(this.data.courses[dataSource], (courseIteration) => {
+            return courseIteration.c === code;
+        });
+        if (courseModel === undefined) {
+            return RETURN_CODES.DATA_NOT_FOUND.COURSE_MODEL;
+        } else {
+            return {
+                code: courseModel.c,
+                name: courseModel.n,
+                level: courseModel.l,
+                sessions: courseModel.s,
+                units: courseModel.u,
+            };
+        }
     }
     
     getNewYearOptions() {
@@ -566,6 +761,18 @@ class View {
 
     }
 
+    loadViewFromSave(data) {
+        
+    }
+
+    showLocalStorageError(errorMessage) {
+        $('#localStorageErrorCode').text(errorMessage);
+        $('#localStorageAlert').removeClass("d-none");
+        $('.localStorageErrorHide').addClass("d-none");
+        $('#getStartedAlert').alert('close');
+        $('#mobileAlert').alert('close');
+    }
+
 }
 
 class Controller {
@@ -575,11 +782,51 @@ class Controller {
         this.currentYear = 2020;
         this.currentSession = "First Semester";
         this.registerEvents();
-        this.loadStore();
+        this.loadLocalStorage();
     }
 
-    async loadStore() {
+    async loadLocalStorage() {
+        await this.loadData();
+        localStorage.setItem('data_version', DATA_VERSION);
+        let savedStore = JSON.parse(localStorage.getItem('degree_plan'));
+        if (savedStore !== null && !$.isEmptyObject(savedStore)) {
+            this.model.store = savedStore;
+            console.log(`Store has been loaded from localStorage`);
+            this.view.loadViewFromSave(this.model.store);
+            $('#getStartedAlert').alert('close');
+        }
+        $('#coursesUpdated').text(`v${APP_VERSION}/${DATA_VERSION}`);
+    }
 
+    loadData() {
+        // loads in data from JSON files via ajax
+        for (let dataName of DATA_NAMES) {
+            if (localStorage.getItem(dataName) === null || localStorage.getItem('data_version') < DATA_VERSION) {
+                $.ajax({
+                    url: `js/data/${dataName}.min.json`,
+                    accepts: 'application/json',
+                    beforeSend: () => {
+                        localStorage.removeItem(dataName);
+                    },
+                    success: (response) => {
+                        console.log(`Loaded ${dataName} from JSON`);
+                        try {
+                            localStorage.setItem(dataName, JSON.stringify(response));
+                            this.model.data[dataName] = response;
+                        } catch (error) {
+                            this.view.showLocalStorageError(error);
+                        }
+                    },
+                    error: (error) => {
+                        console.error(error);
+                        this.view.showLocalStorageError(error);
+                    }
+                });
+            } else {
+                console.log(`Loaded ${dataName} from localStorage`);
+                this.model.data[dataName] = JSON.parse(localStorage.getItem(dataName));
+            }
+        }
     }
 
     registerEvents() {

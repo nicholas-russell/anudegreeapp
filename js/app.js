@@ -26,10 +26,16 @@ const DEFAULT_SESSION_ORDER = ["First Semester","Second Semester","Summer Sessio
 const TIME_SESSION_ORDER = ["First Semester","Autumn Session","Winter Session","Second Semester","Spring Session","Summer Session"];
 const GRADE_MARKS = [7,6,5,4,0];
 const GRADE_LABELS = ["HD","D","C","P","N"];
+
 const DATA_LEVEL_TYPES = {
     YEAR: "year",
     SESSION: "session",
     COURSE: "course"
+};
+const PLAN_TYPES = {
+    MAJOR: "Major",
+    MINOR: "Minor",
+    PROGRAM: "Program"
 };
 const RETURN_CODES = {
     NOT_EXISTS: {
@@ -360,7 +366,8 @@ function Year(name, dataName) {
         name: name,
         dataSrc: dataName,
         type: DATA_LEVEL_TYPES.YEAR,
-        sessions: []
+        sessions: [],
+        plans: []
     }
 }
 
@@ -379,6 +386,14 @@ function Course(code, mark=undefined) {
     }
 }
 
+function Plan(code, type, html) {
+    return {
+        code: code,
+        type: type,
+        html: html
+    }
+}
+
 
 /*********************************
     CLASSES
@@ -386,8 +401,7 @@ function Course(code, mark=undefined) {
 class Model {
     constructor() {
         this.store = {
-            years: [],
-            requirements: {}
+            years: []
         };
         this.data = {};
     }
@@ -599,7 +613,6 @@ class Model {
         } else {
             dataSource = getDataSource(year);
         }
-        console.log(dataSource);
         let courseModel = _.find(this.data.courses[dataSource], (courseIteration) => {
             return courseIteration.c === code;
         });
@@ -662,26 +675,111 @@ class Model {
 
     getDataSummary() {
         // returns summary by code and session
+        let rtn = {codes: {}, sessions:{}};
+        this.store.years.forEach((year, yIndex) => {
+            rtn.sessions[year.name] = {};
+            year.sessions.forEach((session, sIndex) => {
+               session.courses.forEach((course, cIndex) => {
+                   let faculty = course.code.substr(0,4);
+                   let level = course.code.substr(4,1)+"000";
+                   let courseModel = this.getCourseData(year.name, course.code);
+                   let units = courseModel !== RETURN_CODES.DATA_NOT_FOUND.COURSE_MODEL ? parseInt(courseModel.units) : 6;
+
+                   if (!rtn.sessions[year.name].hasOwnProperty(session.name)) {
+                       rtn.sessions[year.name][session.name] = 0;
+                   }
+                   console.log(courseModel.units);
+                   rtn.sessions[year.name][session.name] += units;
+
+                   if (!rtn.codes.hasOwnProperty(level)) {
+                       rtn.codes[level] = {};
+                   }
+                   if (!rtn.codes[level].hasOwnProperty(faculty)) {
+                       rtn.codes[level][faculty] = 0;
+                   }
+                   rtn.codes[level][faculty] += units;
+               });
+            });
+        });
+        return rtn;
     }
 
     isCourseCompleted(year, session, code) {
-        // is the course been completed by this year/session
+        let rtn = false;
+        for (let yearSearch of this.store.years) {
+            let sessionArr = _.filter(yearSearch.sessions, (sessionIterable) => {
+               return (yearSearch.name < year)
+                        || ((yearSearch.name === year)
+                        && (_.indexOf(TIME_SESSION_ORDER, session) >= _.indexOf(TIME_SESSION_ORDER, sessionIterable.name)))
+            });
+            for (let sessionSearch of sessionArr) {
+                for (let course of sessionSearch.courses) {
+                    if (course.code === code) {
+                        rtn = true;
+                        break;
+                    }
+                }
+            }
+        }
+        return rtn;
     }
 
     getTableForPDF() {
-        // gets a table for the PDF
-    }
-
-    getSearchItemsForPlans(year) {
-        // returns combined list of majors, minors and programs
-    }
-
-    getSearchItemsForCourses(year, sessions, codes, careers) {
-        // returns a filtered list given the above conditions
+        let rtn = "<table><tr><th scope='col'>Year</th><th scope='col'>Session</th><th scope='col'>Code</th><th scope='col'>Course</th></tr>";
+        for (let year of this.store.years) {
+            let yrPrinted = false;
+            let yrCount = 0;
+            for (let session of year.sessions) {
+                let ssnPrinted = false;
+                let ssnCount = 0;
+                for (let course of session.courses) {
+                    let courseModel = this.getCourseData(year.name, course.code);
+                    rtn += `<tr>`;
+                    if (!yrPrinted) {
+                        rtn += `<td rowspan='YRCOUNT'>${year.name}</td>`;
+                        yrPrinted = true;
+                    }
+                    if (!ssnPrinted) {
+                        rtn += `<td rowspan='SSNCOUNT'>${session.name}</td>`;
+                        ssnPrinted = true;
+                    }
+                    rtn += `<td>${course.code}</td><td>${courseModel.name} (${courseModel.units} units)</td></tr>`;
+                    ssnCount++;
+                    yrCount++;
+                }
+                rtn = rtn.replace('SSNCOUNT', ssnCount);
+            }
+            rtn = rtn.replace("YRCOUNT",yrCount);
+        }
+        return rtn += "</table>";
     }
 
     getCSV() {
         // returns CSV of store data
+    }
+
+    getSearchItemsForPlans(year) {
+        // returns combined list of majors, minors and programs
+        let cached = this.getCachedPlans();
+        let rtn = [];
+        let yearSrc = getDataSource(year);
+        this.data.majors[yearSrc].forEach((plan) => {
+           let group = _.findIndex(cached, plan.c) === -1 ? "curr" : "prev";
+           rtn.push({...plan, type: 'Major', group: group});
+        });
+        this.data.minors[yearSrc].forEach((plan) => {
+            let group = _.findIndex(cached, plan.c) === -1 ? "curr" : "prev";
+            rtn.push({...plan, type: 'Minor', group: group});
+        });
+        this.data.programs[yearSrc].forEach((plan) => {
+            let group = _.findIndex(cached, plan.c) === -1 ? "curr" : "prev";
+            rtn.push({...plan, type: 'Program', group: group});
+        });
+        return rtn;
+    }
+
+    getSearchItemsForCourses(year, sessions, codes, careers) {
+        // returns a filtered list given the above conditions
     }
 
     _cachePlan() {
@@ -708,8 +806,16 @@ class Model {
         // gets requirement cache
     }
     
-    getCachedPlans(year, code) {
-        // returns a list of codes
+    getCachedPlans() {
+        let rtn = [];
+        this.store.years.forEach((year) => {
+           year.plans.forEach((plan) => {
+               if (_.indexOf(rtn, plan.code) === -1) {
+                   rtn.push(plan.code);
+               }
+           });
+        });
+        return rtn;
     }
 
 }

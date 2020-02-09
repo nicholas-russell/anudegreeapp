@@ -359,6 +359,31 @@ function getDataSource(year) {
     }
 }
 
+function renderTemplate(html, data) {
+    Object.keys(data).forEach((key) => {
+        let regex = new RegExp(`{{${key}}}`, 'g');
+        html = html.replace(regex, data[key]);
+    });
+    return html;
+}
+
+function getPlanRequirements(year, plan, type) {
+
+}
+
+function getCourseRequirements(year, code) {
+    return $.get(`/req.php?c=${code}&y=${year}`)
+        .fail((res) => {
+            console.log(res);
+            return false;
+        });
+}
+
+async function testAjax(year, code) {
+    let response = await getCourseRequirements(year, code);
+    console.log(response);
+}
+
 /*********************************
     DATA TYPE DECLARATIONS
  *********************************/
@@ -1069,42 +1094,109 @@ class View {
     constructor() {
         this.page = {
             // all jQuery selectors here
-            templates: {
-
+            tmpl: {
+                year: {
+                    get: (data) => {
+                        return renderTemplate($('#year-tab-content-template').html(), data)
+                    },
+                    sel: (year) => {
+                        return $(`a[data-year=${year}][data-role=year-tab-nav]`);
+                    }
+                },
+                yearTab: {
+                    get: (data) => {
+                        return renderTemplate($('#year-tab-nav-template').html(), data)
+                    },
+                    sel: (year) => {
+                        return $(`div[data-year=${year}][data-role=year-container]`);
+                    }
+                },
+                session: {
+                    get: (data) => {
+                        return renderTemplate($('#session-template').html(), data);
+                    },
+                    sel: (year, session) => {
+                        return $(`div[data-role=session][data-year=${year}][data-session='${session}']`);
+                    }
+                },
+                course: {
+                    get: (data) => {
+                        return renderTemplate($('#course-template').html(), data);
+                    },
+                    sel: (year, session, course) => {
+                        return $(`tr[data-role=course-row][data-year=${year}][data-session='${session}'][data-course=${course}]`);
+                    }
+                },
+                wamRow: undefined,
+                wamManualRow: undefined,
             },
             modals: {
-
+                course: {
+                    search: {},
+                    plan: {}
+                },
+                year: {},
+                session: {},
+                requirements: {},
+                import: {}
             },
-
+            nav: {
+                import: $('#importBtn'),
+                unitSummary: $('#unitSummaryBtn'),
+                plan: $('#reqBtn'),
+                gpa: $('#gpaBtn'),
+                savePdf: $('#savePdfBtn'),
+                saveCSV: $('#saveCsvBtn'),
+                addYear: $('#add-year'),
+                reset: $('#resetDataBtn'),
+            },
+            tabNav: $('#navTabs'),
+            tabContent: $('#tabContents')
         }
     }
 
     addYear(year) {
-        // adds year tab
+        let data = {year: year};
+        this.page.tabNav.find('li:last').before(this.page.tmpl.yearTab.get(data));
+        this.page.tabContent.append(this.page.tmpl.year.get(data));
+        this.showTab(year);
     }
 
     removeYear(year) {
-        // removes year tab
+        this.page.tmpl.yearTab.sel(year).fadeOutAndRemove('fast');
+        this.page.tmpl.year.sel(year).parent().fadeOutAndRemove('fast');
     }
 
     showTab(year) {
-        // show tab
+        this.page.tmpl.year.sel(year).tab('show');
     }
 
     addSession(year, session) {
-        // adds session table
+        let data = {year: year, session: session};
+        this.page.tmpl.yearTab.sel(year).find('div[data-role=session-container]').append(this.page.tmpl.session.get(data));
     }
 
     removeSession(year, session) {
-        // removes session table
+        this.page.tmpl.session.sel(year, session).fadeOutAndRemove('fast');
     }
 
     addCourse(year, session, code) {
-        // adds course to table
+        let dataSource = app.model.getYearDataSource(year);
+        let courseData = app.model.getCourseData(dataSource, code);
+        let data = {
+            year: year,
+            session: session,
+            code: code,
+            units: courseData.units,
+            name: courseData.name,
+            dataYear: dataSource
+        };
+        let html = this.page.tmpl.course.get(data);
+        this.page.tmpl.session.sel(year, session).find('tbody:last').before(html);
     }
 
     removeCourse(year, session, course) {
-        // removes course from table
+        this.page.tmpl.course.sel(year, session, course).fadeOutAndRemove('fast');
     }
 
     checkRequirements(selector, year, session, mode="course") {
@@ -1204,6 +1296,62 @@ class Controller {
     }
 
     registerEvents() {
+        let v = this.view.page;
+
+        v.nav.addYear.click(() => {
+            console.log("adding year");
+        });
+
+        v.nav.gpa.click((e) => {
+            console.log("gpa button");
+        });
+        v.nav.import.click(async (e) => {
+            console.log("import");
+        });
+        v.nav.plan.click((e) => {
+            console.log("plan");
+        });
+        v.nav.saveCSV.click((e) => {
+            console.log("save csv");
+        });
+        v.nav.savePdf.click((e) => {
+            console.log("save csv");
+        });
+        v.nav.reset.click((e) => {
+            console.log("resetting");
+        });
+
+        v.nav.unitSummary.click((e) => {
+            console.log("unit summary");
+        });
+
+
+
+
+        $(document).on('click', '[data-action=remove-year]', (e) => {
+            console.log("removing year");
+        });
+
+        $(document).on('click', '[data-action=add-session]', (e) => {
+            console.log("adding session");
+        });
+
+        $(document).on('click', '[data-action=remove-session]', (e) => {
+            console.log('removing session');
+        });
+
+        $(document).on('click', '[data-action=add-course]', (e) => {
+           console.log("adding course");
+        });
+
+        $(document).on('click', '[data-action=remove-course]', (e) => {
+            console.log("removing course");
+        });
+
+
+
+
+
 
     }
 }

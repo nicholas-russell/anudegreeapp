@@ -132,8 +132,9 @@
                     </div>
                     <div class="row mb-2">
                         <div class="col">
+                            <button class="btn btn-sm btn-outline-primary mb-2 mb-md-0 localStorageErrorHide" id="importBtn">Import from ISIS</button>
                             <button class="btn btn-sm btn-outline-primary mb-2 mb-md-0 localStorageErrorHide" id="unitSummaryBtn">Unit Summary</button>
-                            <button class="btn btn-sm btn-outline-primary mb-2 mb-md-0 localStorageErrorHide" id="reqBtn">Check Requirements</button>
+                            <button class="btn btn-sm btn-outline-primary mb-2 mb-md-0 localStorageErrorHide" id="reqBtn">Check Plan Requirements</button>
                             <button class="btn btn-sm btn-outline-primary mb-2 mb-md-0" id="gpaBtn">Calculate GPA/WAM</button>
                             <button class="btn btn-sm btn-outline-primary mb-2 mb-md-0 dropdown-toggle localStorageErrorHide" type="button" id="saveBtn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                 Save as
@@ -151,24 +152,15 @@
                     <div class="row localStorageErrorHide">
                         <div class="col">
                             <ul class="nav nav-tabs" id="navTabs" role="tablist">
-                                <!--<li class="nav-item" id="tabNavPrepend">
-                                    <a class="nav-link active" id="navProgramTab" data-toggle="tab" href="#navProgramContent" role="tab" aria-controls="navProgramContent" aria-selected="true">Help</a>
-                                </li>-->
-                                <li class="nav-item" id="tabNavPrepend">
+
+                                <li class="nav-item">
                                     <a class="nav-link" id="add-year" href="javascript:void(0)">
                                         Add Year +
                                     </a>
                                 </li>
                             </ul>
                             <div class="tab-content" id="tabContents">
-                                <!--<div class="tab-pane" id="navProgramContent" role="tabpanel" aria-labelledby="navProgramTab">
-                                    <div class="row mt-3">
-                                        <div class="col">
-                                            Welcome to the
-                                        </div>
-                                    </div>
-                                </div>-->
-                                <span class="d-none" id="tabContentPrepend"></span>
+
                             </div>
                         </div>
                     </div>
@@ -958,13 +950,13 @@
 </div>
 
 <!--TEMPLATES-->
-<script type="text/html" id="yearTabContent-template">
-    <div class="tab-pane fade" id="year_<%=year%>-tab" role="tabpanel" aria-labelledby="year_<%=year%>-nav">
+<script type="text/html" id="year-tab-content-template">
+    <div class="tab-pane fade" id="year-{{year}}-tab" data-year="{{year}}" data-role="year-container" role="tabpanel">
         <div class="row">
             <div class="col mt-3">
-                <button class="btn btn-outline-success add-session btn-sm" data-year="<%=year%>">Add Session for <%=year%></button>
-                <button class="btn btn-outline-danger removeYear btn-sm" data-year="<%=year%>">Remove <%=year%></button>
-                <div class="row" id="year-<%=year%>-sessions">
+                <button class="btn btn-outline-success btn-sm" data-action="add-session">Add Session for {{year}}</button>
+                <button class="btn btn-outline-danger btn-sm" data-action="remove-year">Remove {{year}}</button>
+                <div class="row" data-role="session-container">
 
                 </div>
             </div>
@@ -972,48 +964,36 @@
     </div>
 </script>
 
-<script type="text/html" id="yearTabNav-template">
-    <li class="nav-item" id="year_<%=year%>-li">
-        <a class="nav-link" id="year_<%=year%>-nav" data-toggle="tab" href="#year_<%=year%>-tab" role="tab" aria-controls="year_<%=year%>-tab" aria-selected="false"><%=year%></a>
+<script type="text/html" id="year-tab-nav-template">
+    <li class="nav-item year-tab">
+        <a class="nav-link" data-toggle="tab" data-role="year-tab-nav" data-year="{{year}}" href="#year-{{year}}-tab" role="tab">{{year}}</a>
     </li>
 </script>
 
 <script type="text/html" id="session-template">
-    <div class="col-sm-6 mt-3 session" id="<%=year%>_<%=sessionID%>" data-year="<%=year%>" data-session="<%=session%>">
+    <div class="col-sm-6 mt-3 session" data-role="session" data-year="{{year}}" data-session="{{session}}">
             <div class="d-flex justify-content-center align-items-baseline">
-                <h6><%=session%></h6>
+                <h6>{{session}}</h6>
                 <div class="dropdown">
-                    <i class="material-icons more-options" id="<%=year%>_<%=session%>_options" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <i class="material-icons more-options" role="button" data-toggle="dropdown">
                         more_vert
                     </i>
 
-                    <div class="dropdown-menu" aria-labelledby="<%=year%>_<%=session%>_options">
-                        <small><a class="dropdown-item removeSession" href="#">Remove</a></small>
+                    <div class="dropdown-menu">
+                        <small><a class="dropdown-item" data-action="remove-session" href="#">Remove</a></small>
                     </div>
                 </div>
             </div>
             <div class="session-table">
                 <table class="table-hover table table-sm session-table">
                     <tbody>
-                        <!--<tr class="courseTablePrepend" data-session="<%=session%>" data-year="<%=year%>">
-                            <td class="add-course" colspan="2"><a href="#">Add course
+                        <tr class="courseTablePrepend">
+                            <td class="add-course" data-action="add-course" colspan="2"><a href="#">
+                                Add course
                                 <i class="material-icons">
                                     playlist_add
                                 </i>
                             </a></td>
-                        </tr>-->
-                        <tr class="courseTablePrepend" data-session="<%=session%>" data-year="<%=year%>">
-                            <td class="add-course" colspan="2"><a href="#">Add course
-                                <i class="material-icons">
-                                    playlist_add
-                                </i>
-                            </a></td>
-                            <!--<td colspan="2">
-                                <button class="add-course btn btn-sm btn-outline-secondary">Add course
-                                    <i class="material-icons">
-                                        playlist_add
-                                    </i></button>
-                            </td>-->
                         </tr>
                     </tbody>
                 </table>
@@ -1022,17 +1002,17 @@
 </script>
 
 <script type="text/html" id="course-template">
-    <tr id="<%=year%>_<%=sessionCode%>_<%=code%>" data-year="<%=year%>" data-session="<%=session%>" data-course="<%=code%>">
-        <th scope="row"><%=code%></th>
-        <td><%=name%> (<%=units%> units)</td>
+    <tr data-role="course-row" data-year="{{year}}" data-session="{{session}}" data-course="{{code}}">
+        <th scope="row">{{code}}</th>
+        <td>{{name}} ({{units}} units)</td>
         <td>
             <div class="dropdown">
-                <i class="material-icons more-options" id="<%=year%>_<%=session%>_<%=code%>_options" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <i class="material-icons more-options" role="button" data-toggle="dropdown">
                     more_vert
                 </i>
-                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="<%=year%>_<%=session%>_<%=code%>_options">
-                    <small><a target="_blank" class="dropdown-item" href="https://programsandcourses.anu.edu.au/<%=dataYear%>/course/<%=code%>">Programs and Courses</a></small>
-                    <small><a class="dropdown-item removeCourse" href="#">Remove</a></small>
+                <div class="dropdown-menu dropdown-menu-right">
+                    <small><a target="_blank" class="dropdown-item" href="https://programsandcourses.anu.edu.au/{{dataYear}}/course/{{code}}">Programs and Courses</a></small>
+                    <small><a class="dropdown-item" data-action="remove-course" href="#">Remove</a></small>
                 </div>
             </div>
 
@@ -1041,13 +1021,13 @@
 </script>
 
 <script id="wamRowTemplate" type="text/html">
-    <tr data-course="<%=code%>" data-session="<%=session%>" data-year="<%=year%>" data-units="<%=units%>">
-        <td><%=code%></td>
-        <td><%=name%> (<%=units%> units)</td>
+    <tr data-course="{{code}}" data-session="{{session}}" data-year="{{year}}" data-units="{{units}}">
+        <td>{{code}}</td>
+        <td>{{name}} ({{units}} units)</td>
         <td class="p-0">
-            <input max="100" min="0" type="number" class="form-control form-control-sm wam-mark-input" value="<%=mark%>"/>
+            <input max="100" min="0" type="number" class="form-control form-control-sm wam-mark-input" value="{{mark}}"/>
         </td>
-        <td class="text-center"><span><%=grade%></span></td>
+        <td class="text-center"><span>{{grade}}</span></td>
     </tr>
 </script>
 

@@ -408,17 +408,24 @@ class Model {
         this.data = {};
     }
 
+    /**
+     * Saves the store to the local storage.
+     * @private
+     */
     _commit() {
-        // saves current store to localStorage
         localStorage.setItem('degree_plan', JSON.stringify(this.store));
     }
 
-    setMarkForCourse(year, session, code, courseMark) {
-        // set mark for course
-    }
-    
-    getMarkForCourse(year, session, code) {
-        // get mark for course
+    /**
+     * Evaluates the statement, saves the store to localStorage and then returns the statements return value
+     * @param stmt The statement to execute
+     * @returns {*} The return from the statement
+     * @private
+     */
+    _evalAndCommit(stmt) {
+        let rtn = eval(stmt);
+        this._commit();
+        return rtn;
     }
 
     /**
@@ -429,7 +436,11 @@ class Model {
      */
     addYear(year, dataSource=this.getYearDataSource(year)) {
         if (this.getYearIndex(year) === RETURN_CODES.NOT_EXISTS.YEAR) {
-            return this.store.years.push(Year(year, dataSource)) -1;
+            this._evalAndCommit(this.store.years.push(Year(year, dataSource)) -1);
+            /*let rtn = this.store.years.push(Year(year, dataSource)) -1;
+            this._commit();
+            return rtn;*/
+
         } else {
             console.warn(`${year} already exists`);
             return RETURN_CODES.EXISTS_ALREADY.YEAR;
@@ -460,6 +471,7 @@ class Model {
             return RETURN_CODES.NOT_EXISTS.YEAR;
         } else {
             this.store.years.splice(yearIndex,1);
+            this._commit();
             return RETURN_CODES.REMOVED.YEAR;
         }
     }
@@ -472,7 +484,7 @@ class Model {
      * @param forceAdd {boolean} If true, will add even if the year doesn't exist.
      * @returns {number} Index of added session, -1 if session exists, -2 if year doesn't exist
      */
-    addSession(year, session, yearIndex=this.getYearIndex(year), forceAdd=false) {
+    addSession(year, session, forceAdd=false, yearIndex=this.getYearIndex(year)) {
         if (yearIndex === RETURN_CODES.NOT_EXISTS.YEAR) {
             console.warn(`Warning: ${year} does not exist to add ${session} to`);
             if (forceAdd) {
@@ -483,7 +495,11 @@ class Model {
             }
         }
         if (this.getSessionIndex(year, session) === RETURN_CODES.NOT_EXISTS.SESSION) {
-            return this.store.years[yearIndex].sessions.push(Session(session)) -1;
+            return this._evalAndCommit(this.store.years[yearIndex].sessions.push(Session(session)) -1);
+            /*let rtn = this.store.years[yearIndex].sessions.push(Session(session)) -1;
+            this._commit();
+            return rtn;*/
+
         } else {
             return RETURN_CODES.EXISTS_ALREADY.SESSION;
         }
@@ -526,6 +542,7 @@ class Model {
             return RETURN_CODES.NOT_EXISTS.SESSION;
         } else {
             this.store.years[yearIndex].sessions.splice(sessionIndex, 1);
+            this._commit();
             return RETURN_CODES.REMOVED.SESSION;
         }
     }
@@ -563,7 +580,10 @@ class Model {
         if (this.getCourseIndex(year, session, code) >= 0) {
             return RETURN_CODES.EXISTS_ALREADY.COURSE;
         } else {
-            return this.store.years[yearIndex].sessions[sessionIndex].courses.push(Course(code, mark)) - 1;
+            return this._evalAndCommit(this.store.years[yearIndex].sessions[sessionIndex].courses.push(Course(code, mark)) - 1);
+            /*let rtn = this.store.years[yearIndex].sessions[sessionIndex].courses.push(Course(code, mark)) - 1;
+            this._commit();
+            return rtn;*/
         }
     }
 
@@ -572,16 +592,21 @@ class Model {
      * @param year The year the course is in
      * @param session The session the course is in
      * @param code The course code
+     * @param data
      * @returns {number} The index, or a return code.
      */
-    getCourseIndex(year, session, code) {
+    getCourseIndex(year, session, code, data=false) {
         let sessionIndex = this.getSessionIndex(year, session);
         if (sessionIndex >= 0) {
             let yearIndex = this.getYearIndex(year);
             let index = _.findIndex(this.store.years[yearIndex].sessions[sessionIndex].courses, (courseIteration) => {
                 return courseIteration.code === code;
             });
-            return index === -1 ? RETURN_CODES.NOT_EXISTS.COURSE : index;
+            if (index === -1) {
+                return RETURN_CODES.NOT_EXISTS.COURSE;
+            } else {
+                return data ? this.store.years[yearIndex].sessions[sessionIndex].courses[index] : index;
+            }
         } else {
             return sessionIndex;
         }
@@ -600,10 +625,50 @@ class Model {
             let yearIndex = this.getYearIndex(year);
             let sessionIndex = this.getSessionIndex(year, session, yearIndex);
             this.store.years[yearIndex].sessions[sessionIndex].courses.splice(courseIndex, 1);
+            this._commit();
             return RETURN_CODES.REMOVED.COURSE;
         } else {
             return courseIndex;
         }
+    }
+
+    /**
+     * Sets a mark for a course
+     * @param year The year the course is in
+     * @param session The session the course is in
+     * @param code The code of the course
+     * @param courseMark The new mark
+     * @returns {number|*} Returns the mark, or error.
+     */
+    setMarkForCourse(year, session, code, courseMark) {
+        let yearIndex = this.getYearIndex(year);
+        if (yearIndex < 0) {
+            return yearIndex;
+        }
+        let sessionIndex = this.getSessionIndex(year, session, yearIndex);
+        if (sessionIndex < 0) {
+            return sessionIndex;
+        }
+        let courseIndex = this.getCourseIndex(year, session, code);
+        if (courseIndex < 0) {
+            return courseIndex;
+        }
+        return this._evalAndCommit(this.store.years[yearIndex].sessions[sessionIndex].courses[courseIndex].mark = courseMark);
+        /*let rtn = this.store.years[yearIndex].sessions[sessionIndex].courses[courseIndex].mark = courseMark;
+        this._commit();
+        return rtn;*/
+    }
+
+    /**
+     * Gets the mark for a given course in the store.
+     * @param year The year the course is in
+     * @param session The session the course is in
+     * @param code The code of the course
+     * @returns {*}
+     */
+    getMarkForCourse(year, session, code) {
+        let courseData = this.getCourseIndex(year, session, code, true);
+        return courseData < 0 ? courseData : courseData.mark;
     }
 
     /**
@@ -850,6 +915,7 @@ class Model {
     }
 
     /**
+     * TODO: can get rid of this
      * Downloads CSV data.
      * @param data The data to download
      * @param filename The filenmae, defaults to anudegree_TIMESTAMP
@@ -921,9 +987,13 @@ class Model {
         let planIndex = this.getPlanIndex(year, code);
         if (planIndex >=0) {
             this.store.years[yearIndex].plans[planIndex].html = html;
+            this._commit();
             return planIndex;
         } else {
-            return this.store.years[yearIndex].plans.push(Plan(code, planType, html)) - 1;
+            this._evalAndCommit(this.store.years[yearIndex].plans.push(Plan(code, planType, html)) - 1);
+            /*let rtn = this.store.years[yearIndex].plans.push(Plan(code, planType, html)) - 1;
+            this._commit();
+            return rtn;*/
         }
     }
 
@@ -934,6 +1004,7 @@ class Model {
         this.store.years.forEach((year) => {
            year.plans = [];
         });
+        this._commit();
     }
 
     /**

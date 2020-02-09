@@ -41,7 +41,8 @@ const RETURN_CODES = {
     NOT_EXISTS: {
         YEAR: -401,
         SESSION: -402,
-        COURSE: -403
+        COURSE: -403,
+        PLAN: -404,
     },
     EXISTS_ALREADY: {
         YEAR: -105,
@@ -54,7 +55,7 @@ const RETURN_CODES = {
         COURSE: -203
     },
     DATA_NOT_FOUND: {
-        COURSE_MODEL: -404,
+        COURSE_MODEL: -405,
     }
 };
 
@@ -399,6 +400,7 @@ function Plan(code, type, html) {
     CLASSES
  *********************************/
 class Model {
+
     constructor() {
         this.store = {
             years: []
@@ -425,7 +427,7 @@ class Model {
      * @param dataSource The year to source data from, default to same as year
      * @returns {number} Returns index of added year, or -1 if year already exists.
      */
-    addYear(year, dataSource=getDataSource(year)) {
+    addYear(year, dataSource=this.getYearDataSource(year)) {
         if (this.getYearIndex(year) === RETURN_CODES.NOT_EXISTS.YEAR) {
             return this.store.years.push(Year(year, dataSource)) -1;
         } else {
@@ -603,15 +605,46 @@ class Model {
             return courseIndex;
         }
     }
-    
+
+    /**
+     * Gets the data source to use for a given year.
+     * Either uses the data source defined in the store, or the start/end data year.
+     * @param year The year that the data source is required for
+     * @returns {string} The data source year
+     */
+    getYearDataSource(year) {
+        let yearIndex = this.getYearIndex(year);
+        if (yearIndex === RETURN_CODES.NOT_EXISTS.YEAR) {
+            if (year > END_YEAR_DATA) {
+                return END_YEAR_DATA;
+            } else if(year < START_YEAR_DATA) {
+                return START_YEAR_DATA;
+            } else {
+                return year;
+            }
+        } else {
+            return this.store.years[yearIndex].dataSrc;
+        }
+    }
+
+    /**
+     * Returns the course data given a year/code.
+     * The form is {sessions: string,
+     *              code: string,
+     *              level: string,
+     *              name: string,
+     *              units: string}
+     * @param year The year for the data source
+     * @param code The course code
+     * @returns {course data|RETURN_CODE} The course data or course not found error.
+     */
     getCourseData(year, code) {
-        // returns a data model for the course
         let yearIndex = this.getYearIndex(year);
         let dataSource = year;
         if (yearIndex >= 0) {
             dataSource = this.store.years[yearIndex].dataSrc;
         } else {
-            dataSource = getDataSource(year);
+            dataSource = this.getYearDataSource(year);
         }
         let courseModel = _.find(this.data.courses[dataSource], (courseIteration) => {
             return courseIteration.c === code;
@@ -628,12 +661,21 @@ class Model {
             };
         }
     }
-    
+
+    /**
+     * Returns the possible new years to add.
+     * @returns {array} A list of years to add.
+     */
     getNewYearOptions() {
-        // returns possible new year combinations
-        return _.difference(YEAR_LIST, this.getCurrentYears());
+        let currentYears = this.getCurrentYears();
+        return YEAR_LIST.filter(x => !currentYears.includes(x));
     }
-    
+
+    /**
+     * Gets possible options for sessions in a year
+     * @param year The year that the session is being added to
+     * @returns {string[]} An array of session strings
+     */
     getNewSessionOptions(year) {
         let yearIndex = this.getYearIndex(year);
         console.log(yearIndex);
@@ -641,18 +683,26 @@ class Model {
             console.log('returning default');
             return DEFAULT_SESSION_ORDER;
         } else {
-            return _.difference(DEFAULT_SESSION_ORDER, _.map(this.store.years[yearIndex].sessions, (session) => {
-                return session.name;
-            }));
+            let currentSessions = this.store.years[yearIndex].sessions.map(session => {return session.name});
+            return DEFAULT_SESSION_ORDER.filter(x => !currentSessions.includes(x));
         }
     }
-    
+
+    /**
+     * Returns current years in model
+     * @returns {*[]} An array of years
+     */
     getCurrentYears() {
-        return _.map(this.store.years, (year) => {
-            return year.name;
-        })
+        return this.store.years.map(year => {return year.name});
     }
-    
+
+    /**
+     * Checks if a course is available in a given session
+     * @param year The year name  eg. "2020"
+     * @param session The session name eg. "First Semester"
+     * @param code The code to check eg "COMP1100"
+     * @returns {boolean} Returns true if it is available
+     */
     isCourseAvailableInSession(year, session, code) {
         let courseData = this.getCourseData(year,code);
         if (courseData === RETURN_CODES.DATA_NOT_FOUND.COURSE_MODEL) {
@@ -663,16 +713,31 @@ class Model {
         }
     }
 
+    /**
+     * Checks if a session is empty
+     * @param year The year to check eg. "2020"
+     * @param session The session to check eg. "First Semester"
+     * @returns {*} Boolean or error code if year doesn't exist
+     */
     isSessionEmpty(year, session) {
         let sessionIndex = this.getSessionIndex(year, session);
         return sessionIndex < 0 ? sessionIndex : this.store.years[this.getYearIndex(year)].sessions[sessionIndex].courses.length === 0
     }
 
+    /**
+     * Checks if a year is empty
+     * @param year The year to check eg. "2019"
+     * @returns {*} Boolean if year exists, otherwise error code
+     */
     isYearEmpty(year) {
         let yearIndex = this.getYearIndex(year);
         return yearIndex < 0 ? yearIndex : this.store.years[yearIndex].sessions.length === 0;
     }
 
+    /**
+     * Returns summarised data of the current store.
+     * @returns {{codes: {}, sessions: {}}}
+     */
     getDataSummary() {
         // returns summary by code and session
         let rtn = {codes: {}, sessions:{}};
@@ -704,6 +769,14 @@ class Model {
         return rtn;
     }
 
+    /**
+     * Checks if a course is completed by the year/session.
+     * Returns true if the course is in the session specified.
+     * @param year The year that the course needs to be completed by
+     * @param session The session that the course needs to be completed by
+     * @param code The course code to check
+     * @returns {boolean} True if it has been completed by year/sesison, otherwise false.
+     */
     isCourseCompleted(year, session, code) {
         let rtn = false;
         for (let yearSearch of this.store.years) {
@@ -724,6 +797,10 @@ class Model {
         return rtn;
     }
 
+    /**
+     * Returns a HTML table to be printed to PDF.
+     * @returns {string} HTML code for a table
+     */
     getTableForPDF() {
         let rtn = "<table><tr><th scope='col'>Year</th><th scope='col'>Session</th><th scope='col'>Code</th><th scope='col'>Course</th></tr>";
         for (let year of this.store.years) {
@@ -754,58 +831,155 @@ class Model {
         return rtn += "</table>";
     }
 
-    getCSV() {
-        // returns CSV of store data
+    /**
+     * Gets CSV serialisation of the store
+     */
+    getCSVString() {
+        let data = this.getDataSummary();
+        let rtn = "Year,Session,Code,Name,Units\n";
+        this.store.years.forEach(year => {
+            year.sessions.forEach(session => {
+                session.courses.forEach(course => {
+                    let data = this.getCourseData(year.name, course.code);
+                    rtn += `${year.name},${session.name},${course.code},${data.name.replace(",", "")},${data.units}\n`;
+
+                });
+            });
+        });
+        return rtn;
     }
 
+    /**
+     * Downloads CSV data.
+     * @param data The data to download
+     * @param filename The filenmae, defaults to anudegree_TIMESTAMP
+     */
+    downloadCSV(data, filename=`anudegree_${new Date().getTime()}`) {
+        downloadFile(data,`${filename}.csv`, "data:text/csv;encoding-8");
+    }
+
+    /**
+     * Returns list of plans to be used for the Selectize search, categorised by type.
+     * The group value indicates if it has been searched before (curr = new, prev = history).
+     * @param year The year to search for
+     * @returns {[]} An array of plan objects
+     */
     getSearchItemsForPlans(year) {
         // returns combined list of majors, minors and programs
         let cached = this.getCachedPlans();
         let rtn = [];
-        let yearSrc = getDataSource(year);
+        let yearSrc = this.getYearDataSource(year);
         this.data.majors[yearSrc].forEach((plan) => {
-           let group = _.findIndex(cached, plan.c) === -1 ? "curr" : "prev";
+           let group = cached.includes(plan.c) ? "prev" : "curr";
            rtn.push({...plan, type: 'Major', group: group});
         });
         this.data.minors[yearSrc].forEach((plan) => {
-            let group = _.findIndex(cached, plan.c) === -1 ? "curr" : "prev";
+            let group = cached.includes(plan.c) ? "prev" : "curr";
             rtn.push({...plan, type: 'Minor', group: group});
         });
         this.data.programs[yearSrc].forEach((plan) => {
-            let group = _.findIndex(cached, plan.c) === -1 ? "curr" : "prev";
+            let group = cached.includes(plan.c) ? "prev" : "curr";
             rtn.push({...plan, type: 'Program', group: group});
         });
         return rtn;
     }
 
+    /**
+     * Returns a filtered list of courses given conditions
+     * @param year The year to search for
+     * @param sessions An array of sessions to search with eg. ['First Semester', 'Second Semester']
+     * @param codes An array of code prefixes eg. ['COMP', 'MATH']
+     * @param careers An array of levels to filter by eg. ['Postgraduate']
+     * @returns {*} A list of course objects for Selectize
+     */
     getSearchItemsForCourses(year, sessions, codes, careers) {
-        // returns a filtered list given the above conditions
+        return this.data.courses[this.getYearDataSource(year)].filter((c) => {
+            return   (sessions.some((s) => c.s.includes(s)) || sessions.length === 0)
+                &&      (codes.includes(c.c.substr(0,4)) || codes.length === 0)
+                &&      (careers.includes(c.l) || careers.length === 0);
+        });
     }
 
-    _cachePlan() {
-        // commits requirements
+    /**
+     * Caches a plan into the store.
+     * @param year The year of the plan
+     * @param code The plan code
+     * @param planType Major/Minor/Program
+     * @param html The html of the plan requirements
+     * @param force If to force add (true by default).
+     * @returns {number} The index of the plan
+     */
+    setPlanCache(year, code, planType, html, force=true) {
+        let yearIndex = this.getYearIndex(year);
+        if (yearIndex === RETURN_CODES.NOT_EXISTS.YEAR) {
+            if (force) {
+                yearIndex = this.addYear(year);
+            } else {
+                return yearIndex;
+            }
+        }
+        let planIndex = this.getPlanIndex(year, code);
+        if (planIndex >=0) {
+            this.store.years[yearIndex].plans[planIndex].html = html;
+            return planIndex;
+        } else {
+            return this.store.years[yearIndex].plans.push(Plan(code, planType, html)) - 1;
+        }
     }
 
-    getCachedPlan() {
-        // loads cached requirements
-    }
-
-    setPlanCache(year, code, html, planType) {
-        // caches requirements
-    }
-
+    /**
+     * Resets the plan cache
+     */
     resetPlanCache() {
-        // resets requirement cache
+        this.store.years.forEach((year) => {
+           year.plans = [];
+        });
     }
-    
-    isPlanCached(year, code) {
-        // checks if requirements is available in the cache
+
+    /**
+     * Gets the the index of a plan
+     * @param year The year it is in
+     * @param code The code for the plan
+     * @param yearIndex The year index if available
+     * @returns {number} The index of the plan, or an error code.
+     */
+    getPlanIndex(year, code, yearIndex=this.getYearIndex(year)) {
+        if (yearIndex === RETURN_CODES.NOT_EXISTS.YEAR) {
+            return yearIndex;
+        } else {
+            let index = this.store.years[yearIndex].plans.findIndex((plan) => plan.code === code);
+            if (index === -1) {
+                return RETURN_CODES.NOT_EXISTS.PLAN;
+            } else {
+                return index;
+            }
+        }
     }
-    
-    getCachedPlanHtml(year, code) {
-        // gets requirement cache
+
+    /**
+     * Returns the plan object which includes html
+     * @param year The year the plan is in
+     * @param code The code of the plan eg. "REEN-MAJ"
+     * @returns {number|*} The plan object, or an error code.
+     */
+    getCachedPlan(year, code) {
+        let yearIndex = this.getYearIndex(year);
+        if (yearIndex < 0) {
+            return yearIndex;
+        } else {
+            let planIndex = this.getPlanIndex(year, code, yearIndex);
+            if (planIndex >= 0) {
+                return this.store.years[yearIndex].plans[planIndex];
+            } else {
+                return RETURN_CODES.NOT_EXISTS.PLAN;
+            }
+        }
     }
-    
+
+    /**
+     * Gets a list of cached plans
+     * @returns {[]} An array of plan codes eg. ['REEN-MAJ', 'CSCI-MAJ']
+     */
     getCachedPlans() {
         let rtn = [];
         this.store.years.forEach((year) => {

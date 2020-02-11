@@ -116,9 +116,9 @@ function calculateGPA(counts) {
     let totalMarks = 0;
     _.each(counts, (e,i) => {
         totalCourses += e;
-        totalMarks += gradeMarks[i] * e;
+        totalMarks += GRADE_MARKS[i] * e;
     });
-    return (totalCourses === 0 ? "0.0" : (totalMarks/totalCourses).toFixed(1));
+    return (totalCourses === 0 ? "0.00" : (totalMarks/totalCourses).toFixed(2));
 }
 
 /**
@@ -142,15 +142,15 @@ function calculateWam(marks) {
  */
 function getGradeFromMark(mark) {
     if (mark >= 80) {
-        return gradeLabels[0];
+        return GRADE_LABELS[0];
     } else if (mark >= 70 && mark < 80) {
-        return gradeLabels[1];
+        return GRADE_LABELS[1];
     } else if (mark >= 60 && mark < 70) {
-        return gradeLabels[2];
+        return GRADE_LABELS[2];
     } else if (mark >= 50 && mark <60) {
-        return gradeLabels[3];
+        return GRADE_LABELS[3];
     } else if (mark < 50) {
-        return gradeLabels[4];
+        return GRADE_LABELS[4];
     } else if (mark === "") {
         return "";
     } else {
@@ -168,14 +168,14 @@ function getGradeFromMark(mark) {
  * @param currentGpa Current GPA
  * @param unitsCompleted Units currently completed
  * @param unitsAvailable Units available to go.
- * @returns {{result: boolean, gpa: string, grades: *}}
+ * @returns {{success: boolean, gpa: string, grades: *}}
  */
 function getMinimumGradesForGPA(grades,goalGpa,currentGpa,unitsCompleted, unitsAvailable) {
     let gpa = (this.calculateGPA(grades)*unitsAvailable + (currentGpa*unitsCompleted))/(unitsAvailable + unitsCompleted);
     if (gpa >= goalGpa) {
-        return {gpa: gpa.toFixed(3), grades: grades, result: true};
+        return {gpa: gpa.toFixed(3), grades: grades, success: true};
     } else if (grades[0] === unitsAvailable) {
-        return {gpa: gpa.toFixed(3), grades: grades, result: false};
+        return {gpa: gpa.toFixed(3), grades: grades, success: false};
     } else {
         let w = 0;
         $.each(grades, (i,e)=>{
@@ -195,7 +195,7 @@ function getMinimumGradesForGPA(grades,goalGpa,currentGpa,unitsCompleted, unitsA
             grades[w]--;
             grades[w-1]++;
         }
-        return this.getMinimumGrades(grades,goalGpa,currentGpa,unitsCompleted,unitsAvailable);
+        return getMinimumGradesForGPA(grades,goalGpa,currentGpa,unitsCompleted,unitsAvailable);
     }
 
 }
@@ -457,6 +457,23 @@ class Model {
         return rtn;
     }
 
+    sortStore() {
+        this.store.years.forEach(year => {
+           year.sessions.sort((s1, s2) => {
+               let s1Index = TIME_SESSION_ORDER.indexOf(s1.name);
+               let s2Index = TIME_SESSION_ORDER.indexOf(s2.name);
+               if (s1Index < s2Index) { return -1; }
+               if (s1Index > s2Index) {return 1; }
+               return 0;
+           });
+        });
+        this.store.years.sort((y1, y2) => {
+            if (y1.name < y2.name) { return -1; }
+            if (y1.name > y2.name) { return 1; }
+            return 0;
+        });
+    }
+
     /**
      * Adds a year to the model store
      * @param year The year to add
@@ -482,6 +499,7 @@ class Model {
      * @returns {number} The index, or -1 if it doesn't exist.
      */
     getYearIndex(year) {
+        year = year.toString();
         let index = _.findIndex(this.store.years, (yearIteration) => {
            return yearIteration.name === year;
         });
@@ -896,6 +914,7 @@ class Model {
      */
     getTableForPDF() {
         let rtn = "<table><tr><th scope='col'>Year</th><th scope='col'>Session</th><th scope='col'>Code</th><th scope='col'>Course</th></tr>";
+        this.sortStore();
         for (let year of this.store.years) {
             let yrPrinted = false;
             let yrCount = 0;
@@ -929,6 +948,7 @@ class Model {
      */
     getCSVString() {
         let data = this.getDataSummary();
+        this.sortStore();
         let rtn = "Year,Session,Code,Name,Units\n";
         this.store.years.forEach(year => {
             year.sessions.forEach(session => {
@@ -1095,6 +1115,59 @@ class Model {
 
 class View {
     constructor() {
+        this.settings = {
+            courseSelectize: {
+                searchField: ["c","n"],
+                maxItems: 1,
+                sortField: 'c',
+                valueField: 'c',
+                labelField: 'n',
+                render: {
+                    item: (c, escape) => {
+                        return `<div><strong>${escape(c.c)}</strong> ${escape(c.n)}</div>`;
+                    },
+                    option: (c, escape) => {
+                        return `<div class="ml-2 my-1">
+                            <strong>${escape(c.c)}</strong>  ${escape(c.n)}
+                            <br/>
+                            <small><strong>Units: </strong> ${escape(c.u)}</small>
+                            <small><strong>Sessions: </strong> ${escape(c.s)}</small>
+                        </div>`;
+                    }
+                }
+            },
+            planSelectize: {
+                searchField: ["n","c"],
+                maxItems: 1,
+                sortField: 'c',
+                valueField: 'c',
+                labelField: 'n',
+                optgroups: [
+                    {value: 'prev', label: 'History'},
+                    {value: 'curr', label: 'Results'},
+                ],
+                lockOptgroupOrder: true,
+                optgroupField: 'group',
+                render: {
+                    item: (c, escape) => {
+                        return `<div><strong>${escape(c.c)}</strong> ${escape(c.n)}</div>`;
+                    },
+                    option: (c, escape) => {
+                        return `<div class="ml-2 my-1">
+                                <strong>${escape(c.c)}</strong>  ${escape(c.n)}
+                                <br/>
+                                <small><strong>Level: </strong> ${escape(c.l)}</small>
+                            </div>`;
+                    },
+                    optgroup_header: (d, escape) => {
+                        return `<div></div>`;
+                        //return `<div class='optgroup-header'>${escape(d.label)}</div>'`;
+                    }
+                }
+            },
+            csvTable: undefined,
+            htmlTable: undefined
+        };
         this.page = {
             // all jQuery selectors here
             tmpl: {
@@ -1130,8 +1203,16 @@ class View {
                         return $(`tr[data-role=course-row][data-year=${year}][data-session='${session}'][data-course=${course}]`);
                     }
                 },
-                wamRow: undefined,
-                wamManualRow: undefined,
+                wamRow: {
+                    get: (data) => {
+                        return renderTemplate($('#wamRowTemplate').html(), data);
+                    }
+                },
+                wamManualRow: {
+                    get: () => {
+                        return renderTemplate($('#wamRowManualTemplate').html(), {});
+                    }
+                },
             },
             modals: {
                 course: {
@@ -1143,26 +1224,7 @@ class View {
                             sortField: 'text'
                         }),
                         career: $('#courseSelectCareerSelect').selectize(),
-                        course: $('#courseSelectCourseSearch').selectize({
-                            searchField: ["c","n"],
-                            maxItems: 1,
-                            sortField: 'c',
-                            valueField: 'c',
-                            labelField: 'n',
-                            render: {
-                                item: (c, escape) => {
-                                    return `<div><strong>${escape(c.c)}</strong> ${escape(c.n)}</div>`;
-                                },
-                                option: (c, escape) => {;
-                                    return `<div class="ml-2 my-1">
-                                <strong>${escape(c.c)}</strong>  ${escape(c.n)}
-                                <br/>
-                                <small><strong>Units: </strong> ${escape(c.u)}</small>
-                                <small><strong>Sessions: </strong> ${escape(c.s)}</small>
-                            </div>`;
-                                }
-                            }
-                        }),
+                        course: $('#courseSelectCourseSearch').selectize(this.settings.courseSelectize),
                         requirements: $('#courseSelectReqText'),
                         spinner: $('#courseSelectReqSpinner')
                     },
@@ -1176,37 +1238,9 @@ class View {
                             textContainer: $('#courseModalPlanReqTextContainer'),
                             text: $('#courseModalPlanReqText'),
                             spinner: $('#courseModalPlanReqSpinner'),
-                            code: $('#courseModakPlanReqTextCode'),
+                            code: $('#courseModalPlanReqTextCode'),
                         },
-                        search: $('#courseModalPlanSearch').selectize({
-                            searchField: ["n","c"],
-                            maxItems: 1,
-                            sortField: 'c',
-                            valueField: 'c',
-                            labelField: 'n',
-                            optgroups: [
-                                {value: 'prev', label: 'History'},
-                                {value: 'curr', label: 'Results'},
-                            ],
-                            lockOptgroupOrder: true,
-                            optgroupField: 'group',
-                            render: {
-                                item: (c, escape) => {
-                                    return `<div><strong>${escape(c.c)}</strong> ${escape(c.n)}</div>`;
-                                },
-                                option: (c, escape) => {
-                                    return `<div class="ml-2 my-1">
-                                <strong>${escape(c.c)}</strong>  ${escape(c.n)}
-                                <br/>
-                                <small><strong>Level: </strong> ${escape(c.l)}</small>
-                            </div>`;
-                                },
-                                optgroup_header: (d, escape) => {
-                                    return `<div></div>`;
-                                    //return `<div class='optgroup-header'>${escape(d.label)}</div>'`;
-                                }
-                            }
-                        }),
+                        search: $('#courseModalPlanSearch').selectize(this.settings.planSelectize),
                     },
                     planActive: () => {return $('#courseModalNavPlanPill').hasClass("active")}
                 },
@@ -1218,8 +1252,46 @@ class View {
                     id: $('#sessionSelectModal'),
                     select: $('#sessionSelectModal select'),
                 },
-                requirements: {},
+                requirements: {
+                    id: $('#requirementsModal'),
+                    year: $('#requirementsModalYearSelect'),
+                    text: $('#requirementsModalText'),
+                    textContainer: $('#requirementsModalTextContainer'),
+                    spinner: $('#requirementsModalSpinner'),
+                    search: $('#requirementsModalSearch').selectize(this.settings.planSelectize),
+                },
                 import: {},
+                gpa: {
+                    id: $('#gpaModal'),
+                    wam: {
+                        table: $('#wamModalAutoTable'),
+                        manTable: $('#wamModalManualTable'),
+                        resultGPA: $('#wamModalGPA'),
+                        resultWAM: $('#wamModalWAM'),
+                        lastElement: $('#wamModalAutoTable table > tbody:last-child'),
+                        inputClass: '.wam-mark-input',
+                        mode: $('#wamModalEntryMode'),
+                        manAdd: $('#wamModalManualAddCourse'),
+                        manAddMarker: $('#wamModalTableMarker'),
+                        isManual: () => {return $('#wamModalEntryMode').is(':checked')},
+                        isFirst: () => {return $('#wamModalExcl1000').is(':checked')},
+                    },
+                    gpa: {
+                        inputControl: $('.input-num-control'),
+                        input: $('.gpa-unit-entry'),
+                        gradeInput: $(".input-num-control[data-type='gpa-course']"),
+                        totalUnits: $('#gpaModalTotalUnits'),
+                        totalCourses: $('#gpaModalTotalCourses'),
+                        resultGPA: $('#gpaModalManualGrade'),
+                        goal: {
+                            gpa: $('#gpaModalGoalGPA'),
+                            semesters: $('#gpaModalGoalSemesters'),
+                            submit: $('#gpaModalGoalSubmit'),
+                            results: $('#gpaModalGoalResults'),
+                            resultGPA: $('#gpaModalGoalResultGpa')
+                        }
+                    }
+                },
                 summary: {
                     id: $('#unitSummaryModal'),
                     codes: $('#unitSummaryCodes'),
@@ -1237,7 +1309,7 @@ class View {
                 reset: $('#resetDataBtn'),
             },
             tabNav: $('#navTabs'),
-            tabContent: $('#tabContents')
+            tabContent: $('#tabContents'),
         }
     }
 
@@ -1355,23 +1427,101 @@ class View {
     }
 
     updateGPAFields(selector, value) {
-        // TODO: refactor - do we need value?
+        let unitsLabelText = value === 0 ? "" : `${value*6} units`;
+
+        let totalCourses = this.getGPACourseTotal();
+        let totalCoursesText = totalCourses;
+        let totalUnitsText = totalCourses === 0 ? "" : `${totalCourses*6} units`;
+
+        selector.closest(".form-group").find(".units-label").text(unitsLabelText);
+        this.page.modals.gpa.gpa.totalCourses.text(totalCoursesText);
+        this.page.modals.gpa.gpa.totalUnits.text(totalUnitsText);
     }
 
     getGPAGradeCounts() {
-
+        return $('.gpa-unit-entry').map((i, e) => {
+            return parseInt($(e).val());
+        }).get();
     }
 
-    renderWAMTable(data) {
+    getGPACourseTotal() {
+        return this.getGPAGradeCounts().reduce((accm, n) => {
+            return accm + n;
+        });
+    }
 
+    renderWAMTable() {
+        this.page.modals.gpa.wam.table.find("table tbody").html("");
+        let i = 0;
+        app.model.store.years.forEach(year => {
+           year.sessions.forEach(session => {
+              session.courses.forEach(course => {
+                 let courseData = app.model.getCourseData(year.name, course.code);
+                 let data = {
+                     year: year.name,
+                     session: session.name,
+                     code: course.code,
+                     units: courseData.units,
+                     name: courseData.name,
+                     mark: course.mark === null ? "" : course.mark,
+                     grade: course.mark === null ? "" : getGradeFromMark(course.mark)
+                 };
+                 this.page.modals.gpa.wam.lastElement.append(this.page.tmpl.wamRow.get(data));
+                 i++;
+              });
+           });
+        });
+        if (i === 0) {
+            this.page.modals.gpa.wam.lastElement.append("<tr><td colspan='4'>Add courses to your planner to calculate WAM</td></tr>");
+        }
     }
 
     renderWAMTableResults(manual, firstYear) {
-
+        let marks = [];
+        let grades = [0, 0, 0, 0, 0];
+        if (manual) {
+            $('#wamModalManualTable .wam-mark-input').each((i, input) => {
+                let sel = $(input);
+                let value = sel.val();
+                let row = sel.closest("tr");
+                let level = row.find('.wam-table-input-level').val();
+                let units = row.find('.wam-table-input-unit').val();
+                if (value !== "") {
+                    if (firstYear && level === "1000") {
+                        return true;
+                    } else {
+                        for (let i = 0; i < units/6; i++) {
+                            marks.push(value);
+                        }
+                        grades[GRADE_LABELS.indexOf(getGradeFromMark(value))] += units/6;
+                    }
+                }
+            });
+        } else {
+            $('#wamModalAutoTable .wam-mark-input').each((i, input) => {
+                let sel = $(input);
+                let value = sel.val();
+                let row = sel.closest("tr");
+                let units = row.data('units');
+                let level = row.data('course').charAt(4);
+                if (value !== "") {
+                    if (firstYear && level === "1") {
+                        return true;
+                    } else {
+                        for (let i = 0; i < units/6; i++) {
+                            marks.push(value);
+                        }
+                        grades[GRADE_LABELS.indexOf(getGradeFromMark(value))] += units/6;
+                    }
+                }
+            });
+        }
+        this.page.modals.gpa.wam.resultGPA.text(calculateGPA(grades));
+        this.page.modals.gpa.wam.resultWAM.text(calculateWam(marks));
     }
 
     addRowToWAMManualTable() {
-
+        this.page.modals.gpa.wam.manAddMarker.before(this.page.tmpl.wamManualRow.get());
     }
 
     loadViewFromSave(data) {
@@ -1421,9 +1571,10 @@ class Controller {
         await this.loadData();
         localStorage.setItem('data_version', DATA_VERSION);
         let savedStore = JSON.parse(localStorage.getItem('degree_plan'));
-        if (savedStore !== null && !$.isEmptyObject(savedStore)) {
+        if (savedStore !== null && savedStore.years.length !== 0) {
             this.model.store = savedStore;
             console.log(`Store has been loaded from localStorage`);
+            this.model.sortStore();
             this.view.loadViewFromSave(this.model.store);
             $('#getStartedAlert').alert('close');
         }
@@ -1465,23 +1616,207 @@ class Controller {
         let v = this.view.page;
 
         v.nav.gpa.click(() => {
-            console.log("gpa button");
+            app.view.renderWAMTable();
+            app.view.renderWAMTableResults(v.modals.gpa.wam.isManual(), v.modals.gpa.wam.isFirst());
+            v.modals.gpa.id.modal();
         });
+
+        $(document).on('input', v.modals.gpa.wam.inputClass, (e)=> {
+            let m = v.modals.gpa.wam;
+            let sel = $(e.target);
+            let value = sel.val();
+            if (value.length > 3) {
+                sel.val(value.slice(0,3));
+            }
+            if (value > 100) {
+                sel.val(100);
+            }
+            if (value < 0) {
+                sel.val(0);
+            }
+
+            if (value === "") {
+                sel.parent().next().text("");
+            } else {
+                sel.parent().next().text(getGradeFromMark(value));
+            }
+            
+            if (!m.isManual()) {
+                let row = sel.closest("tr");
+                //console.log(`${row.data("year")} ${row.data("session")} ${row.data("course")} ${value}`);
+                app.model.setMarkForCourse(row.data("year"), row.data("session"), row.data("course"), value);
+            }
+
+            app.view.renderWAMTableResults(m.isManual(), m.isFirst());
+        });
+
+        v.modals.gpa.gpa.inputControl.on('click', (e)=>{
+            let selector = $(e.target).data("for");
+            let action = $(e.target).data("action");
+            if (action === "inc") {
+                document.getElementById(selector).stepUp();
+            } else {
+                document.getElementById(selector).stepDown();
+            }
+        });
+
+        v.modals.gpa.gpa.gradeInput.on('click', (e)=>{
+            let sel = $(e.target).parent().siblings('input');
+            let val = sel.val();
+            sel.removeClass("is-invalid");
+            app.view.updateGPAFields(sel, val);
+            let gpa = calculateGPA(app.view.getGPAGradeCounts());
+            v.modals.gpa.gpa.resultGPA.text(gpa);
+            v.modals.gpa.gpa.goal.gpa.val(gpa);
+        });
+
+        v.modals.gpa.gpa.goal.submit.click(() => {
+            let g = v.modals.gpa.gpa.goal;
+            let currentGPA = calculateGPA(app.view.getGPAGradeCounts());
+            let currentCourses = app.view.getGPACourseTotal();
+            let goalGPA = g.gpa.val();
+            let coursesAvailable = g.semesters.val()*4;
+            let initGrades = [0, 0, 0, 0, coursesAvailable];
+            let result = getMinimumGradesForGPA(initGrades, goalGPA, currentGPA, currentCourses, coursesAvailable);
+            if (result.success) {
+                g.resultGPA.addClass("text-success").removeClass("text-danger").text(result.gpa);
+            } else {
+                g.resultGPA.removeClass("text-success").addClass("text-danger").text(result.gpa);
+            }
+            g.results.removeClass("d-none");
+            $('#gpaModalGoalResultText1').text("");
+            $('#gpaModalGoalResultText2').text("");
+            let n = 1;
+            for (let i = 0; i<result.grades.length; i++) {
+                let val  = result.grades[i];
+                if (val !== 0) {
+                    $('#gpaModalGoalResultText' + n).text(`${val} x ${GRADE_LABELS[i]}`);
+                    n++;
+                }
+            }
+        });
+
+        v.modals.gpa.wam.mode.on('change', (e)=> {
+            let w = v.modals.gpa.wam;
+            let manual = w.isManual();
+            if (manual) {
+                w.table.addClass("d-none");
+                w.manTable.removeClass("d-none");
+            } else {
+                w.table.removeClass("d-none");
+                w.manTable.addClass("d-none");
+            }
+            app.view.renderWAMTableResults(w.isManual(), w.isFirst());
+        });
+
+        $('#wamModalExcl1000, .wam-table-input-unit, .wam-table-input-level').on('change', ()=> {
+            app.view.renderWAMTableResults(v.modals.gpa.wam.isManual(), v.modals.gpa.wam.isFirst());
+        });
+
+        v.modals.gpa.wam.manAdd.on('click', () => {
+            app.view.addRowToWAMManualTable();
+        });
+
+        v.modals.gpa.gpa.input.on('change input', (e) => {
+            console.log("triggered");
+            let sel = $(e.target);
+            let val = sel.val();
+            if (val % 1 !== 0) {
+               sel.addClass("is-invalid");
+            } else {
+               sel.removeClass("is-invalid");
+               app.view.updateGPAFields(sel, val);
+               let gpa = calculateGPA(app.view.getGPAGradeCounts());
+               v.modals.gpa.gpa.resultGPA.text(gpa);
+               v.modals.gpa.gpa.goal.gpa.val(gpa);
+            }
+        });
+
         v.nav.import.click(() => {
             console.log("import");
         });
+        
         v.nav.plan.click(() => {
-            console.log("plan");
+            let r = v.modals.requirements;
+            let currentYears = app.model.getCurrentYears();
+            let years = currentYears.length === 0 ?
+                YEAR_LIST.filter((year) => {return year <= END_YEAR_DATA}) :
+                currentYears.filter((year) => {return year <= END_YEAR_DATA});
+            let selected = r.year.val() === "" ? years[0] : r.year.val();
+            setInputOptions(r.year, years, selected);
+            app.view.checkRequirements(
+                r.text,
+                "9999",
+                "Summer Session",
+                false
+            );
+            r.id.modal();
         });
+
+        v.modals.requirements.search[0].selectize.on('item_add', async () => {
+            let r = v.modals.requirements;
+            let year = app.model.getYearDataSource(r.year.val());
+            let code = r.search[0].selectize.items[0];
+            let type = "";
+            if ((code.slice(code.length-3)) === "MAJ") {
+                type = "Major";
+            } else if ((code.slice(code.length-3) === "MIN")) {
+                type = "Minor";
+            } else {
+                type = "Program";
+            }
+            r.textContainer.addClass("d-none");
+            r.spinner.removeClass("d-none");
+            let response = "";
+            let planIndex = app.model.getPlanIndex(year, code);
+            if (planIndex >= 0) {
+                response = app.model.getCachedPlan(year, code).html;
+            } else {
+                response = await getPlanRequirements(year, code, type);
+                app.model.setPlanCache(year, code, type, response, true);
+            }
+            r.textContainer.removeClass("d-none");
+            r.spinner.addClass("d-none");
+            r.text.html(response);
+            app.view.checkRequirements(r.text, "9999", "Summer Session" , false);
+        });
+        v.modals.requirements.search[0].selectize.on('dropdown_open', () => {
+            v.modals.requirements.search[0].selectize.clear(true);
+            v.modals.requirements.search[0].selectize.clearOptions();
+            v.modals.requirements.search[0].selectize.addOption(app.model.getSearchItemsForPlans(v.modals.requirements.year.val()));
+        });
+        
         v.nav.saveCSV.click(() => {
-            console.log("save csv");
+            downloadFile(app.model.getCSVString(),`anudegree_${new Date().getTime()}.csv`, "data:text/csv;encoding-8");
         });
+        
         v.nav.savePdf.click(() => {
-            console.log("save csv");
+            let doc = new jsPDF();
+            $('#pdfTable').html(app.model.getTableForPDF());
+            let marginX = 14;
+            doc.setFontSize(22);
+            doc.text("ANU Degree Plan",marginX,22);
+            doc.autoTable({
+                html: '#pdfTable table',
+                startY: 28,
+                styles: {cellWidth: 'wrap'},
+                theme: 'grid',
+                //columnStyles: {course: {cellWidth: 'auto'}}
+            });
+
+            doc.save(`anudegree_${new Date().getTime()}.pdf`);
         });
+        
         v.nav.reset.click(() => {
-            console.log("resetting");
+            if (confirm("Are you sure you want to reset your data?")) {
+                let years = app.model.getCurrentYears();
+                years.forEach((year) => {
+                   console.log(app.view.removeYear(year));
+                   console.log(app.model.removeYear(year));
+                });
+            }
         });
+        
         v.nav.unitSummary.click(() => {
             let tables = app.view.getUnitSummaryHTML(app.model.getDataSummary());
             v.modals.summary.codes.html(tables.codes);
@@ -1573,11 +1908,13 @@ class Controller {
                 m.search.codes[0].selectize.clearOptions();
                 m.search.codes[0].selectize.addOption(app.view.getCodeListForYear(context.year));
                 context.year > END_YEAR_DATA ? m.dataWarning.removeClass('d-none') : m.dataWarning.addClass('d-none');
+
                 let currentYears = app.model.getCurrentYears();
                 let years = currentYears.length === 0 ?
                     YEAR_LIST.filter((year) => {return year <= END_YEAR_DATA}) :
                     currentYears.filter((year) => {return year <= END_YEAR_DATA});
-                setInputOptions(m.plan.year, years, null);
+                let selected = m.plan.year.val() === "" ? years[0] : m.plan.year.val();
+                setInputOptions(m.plan.year, years, selected);
                 m.plan.search[0].selectize.clearOptions();
                 m.plan.search[0].selectize.addOption(app.model.getSearchItemsForPlans(m.plan.year.val()));
                 app.view.checkRequirements(
@@ -1632,7 +1969,7 @@ class Controller {
         };
         v.modals.course.search.course[0].selectize.on('item_add', displayCourseRequirements);
 
-        let displayPlanRequirements = async () => {
+        let newPlanCourse = async () => {
             let m = v.modals.course.plan;
             let year = app.model.getYearDataSource(m.year.val());
             let code = m.search[0].selectize.items[0];
@@ -1660,7 +1997,7 @@ class Controller {
             app.view.checkRequirements(m.requirementsText, this.currentYear, this.currentSession, true);
         };
 
-        v.modals.course.plan.search[0].selectize.on('item_add', displayPlanRequirements);
+        v.modals.course.plan.search[0].selectize.on('item_add', newPlanCourse);
         v.modals.course.plan.search[0].selectize.on('dropdown_open', (e) => {
             v.modals.course.plan.courseRequirements.textContainer.addClass("d-none");
             v.modals.course.plan.search[0].selectize.clear(true);
@@ -1690,7 +2027,10 @@ class Controller {
         });
 
         $(document).on('click', '[data-action=remove-course]', (e) => {
-
+            let row = $(e.target).closest("tr[data-role=course-row]");
+            app.view.removeCourse(row.data('year'), row.data('session'), row.data('course'));
+            console.log(row.data('year') + row.data('session') + row.data('course'));
+            console.log(app.model.removeCourse(row.data('year'), row.data('session'), row.data('course')));
         });
 
 

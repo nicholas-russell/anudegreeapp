@@ -323,16 +323,16 @@ function generateHtmlTable(data, colLabel, rowTotal, colTotal, sort) {
     html += "</thead>";
 
     for (let a of rows) {
-        let rowTotal = 0;
+        let rowTotalCount = 0;
         html += `<tr><th scope="row">${a}</th>`;
         for (let b of headers) {
             let x = data[a].hasOwnProperty(b) ? data[a][b] : 0;
-            rowTotal += x;
+            rowTotalCount += x;
             colTotals[b] = colTotals.hasOwnProperty(b) ? colTotals[b] + x : x;
             html += `<td>${x}</td>`;
         }
-        total += rowTotal;
-        html += rowTotal ? `<td class="${cssTotal}">${rowTotal}</td>` : '';
+        total += rowTotalCount;
+        html += rowTotal ? `<td class="${cssTotal}">${rowTotalCount}</td>` : '';
         html += '</tr>';
     }
 
@@ -367,8 +367,12 @@ function renderTemplate(html, data) {
     return html;
 }
 
-function getPlanRequirements(year, plan, type) {
-
+function getPlanRequirements(year, code, type) {
+    return $.get(`/plan.php?c=${code}&y=${year}&t=${type}`)
+        .fail((res) => {
+            console.log(res);
+            return false;
+        });
 }
 
 function getCourseRequirements(year, code) {
@@ -379,8 +383,8 @@ function getCourseRequirements(year, code) {
         });
 }
 
-async function testAjax(year, code) {
-    let response = await getCourseRequirements(year, code);
+async function testAjax(year, code, type) {
+    let response = await getPlanRequirements(year, code, type);
     console.log(response);
 }
 
@@ -768,7 +772,6 @@ class Model {
      */
     getNewSessionOptions(year) {
         let yearIndex = this.getYearIndex(year);
-        console.log(yearIndex);
         if (yearIndex === RETURN_CODES.NOT_EXISTS.YEAR) {
             console.log('returning default');
             return DEFAULT_SESSION_ORDER;
@@ -1132,13 +1135,96 @@ class View {
             },
             modals: {
                 course: {
-                    search: {},
-                    plan: {}
+                    id: $('#courseSelectModal'),
+                    dataWarning: $('#courseSelectWarning'),
+                    search: {
+                        sessions: $('#courseSelectSessionSelect').selectize(),
+                        codes: $('#courseSelectCodeSelect').selectize({
+                            sortField: 'text'
+                        }),
+                        career: $('#courseSelectCareerSelect').selectize(),
+                        course: $('#courseSelectCourseSearch').selectize({
+                            searchField: ["c","n"],
+                            maxItems: 1,
+                            sortField: 'c',
+                            valueField: 'c',
+                            labelField: 'n',
+                            render: {
+                                item: (c, escape) => {
+                                    return `<div><strong>${escape(c.c)}</strong> ${escape(c.n)}</div>`;
+                                },
+                                option: (c, escape) => {;
+                                    return `<div class="ml-2 my-1">
+                                <strong>${escape(c.c)}</strong>  ${escape(c.n)}
+                                <br/>
+                                <small><strong>Units: </strong> ${escape(c.u)}</small>
+                                <small><strong>Sessions: </strong> ${escape(c.s)}</small>
+                            </div>`;
+                                }
+                            }
+                        }),
+                        requirements: $('#courseSelectReqText'),
+                        spinner: $('#courseSelectReqSpinner')
+                    },
+                    plan: {
+                        year: $('#courseModalPlanYearSelect'),
+                        textContainer: $('#courseModalPlanTextContainer'),
+                        requirementsText: $('#courseModalPlanText'),
+                        spinner: $('#courseModalPlanSpinner'),
+                        code: $('#courseCodeHolder'),
+                        courseRequirements: {
+                            textContainer: $('#courseModalPlanReqTextContainer'),
+                            text: $('#courseModalPlanReqText'),
+                            spinner: $('#courseModalPlanReqSpinner'),
+                            code: $('#courseModakPlanReqTextCode'),
+                        },
+                        search: $('#courseModalPlanSearch').selectize({
+                            searchField: ["n","c"],
+                            maxItems: 1,
+                            sortField: 'c',
+                            valueField: 'c',
+                            labelField: 'n',
+                            optgroups: [
+                                {value: 'prev', label: 'History'},
+                                {value: 'curr', label: 'Results'},
+                            ],
+                            lockOptgroupOrder: true,
+                            optgroupField: 'group',
+                            render: {
+                                item: (c, escape) => {
+                                    return `<div><strong>${escape(c.c)}</strong> ${escape(c.n)}</div>`;
+                                },
+                                option: (c, escape) => {
+                                    return `<div class="ml-2 my-1">
+                                <strong>${escape(c.c)}</strong>  ${escape(c.n)}
+                                <br/>
+                                <small><strong>Level: </strong> ${escape(c.l)}</small>
+                            </div>`;
+                                },
+                                optgroup_header: (d, escape) => {
+                                    return `<div></div>`;
+                                    //return `<div class='optgroup-header'>${escape(d.label)}</div>'`;
+                                }
+                            }
+                        }),
+                    },
+                    planActive: () => {return $('#courseModalNavPlanPill').hasClass("active")}
                 },
-                year: {},
-                session: {},
+                year: {
+                    id: $('#yearSelectModal'),
+                    select: $('#yearSelectModal select'),
+                },
+                session: {
+                    id: $('#sessionSelectModal'),
+                    select: $('#sessionSelectModal select'),
+                },
                 requirements: {},
-                import: {}
+                import: {},
+                summary: {
+                    id: $('#unitSummaryModal'),
+                    codes: $('#unitSummaryCodes'),
+                    sessions: $('#unitSummarySessions')
+                }
             },
             nav: {
                 import: $('#importBtn'),
@@ -1159,7 +1245,6 @@ class View {
         let data = {year: year};
         this.page.tabNav.find('li:last').before(this.page.tmpl.yearTab.get(data));
         this.page.tabContent.append(this.page.tmpl.year.get(data));
-        this.showTab(year);
     }
 
     removeYear(year) {
@@ -1199,12 +1284,74 @@ class View {
         this.page.tmpl.course.sel(year, session, course).fadeOutAndRemove('fast');
     }
 
-    checkRequirements(selector, year, session, mode="course") {
-        // checks div for course codes and then if they are complete
+    showModal(modal, beforeShow, yesCallback, noCallback, event, context={}) {
+        beforeShow(event, context);
+        modal.modal();
+        let yesBtn = modal.find('button[data-action=modal-yes]');
+        let noBtn = modal.find('button[data-action=modal-no]');
+        yesBtn.one('click', (e) => {
+            noBtn.off('click');
+            yesCallback(e, context);
+        });
+        noBtn.one('click', (e) => {
+           yesBtn.off('click');
+           noCallback(e, context);
+        });
+    }
+
+    checkRequirements(selector, year, session, addCourseButtons = false) {
+        selector.find("a[data-coursecode]").each((i, e) => {
+            let sel = $(e);
+            sel.next("button[data-action='add-course-plan']").remove();
+            let code = sel.data('coursecode');
+            let completed = app.model.isCourseCompleted(year, session, code);
+            sel.removeClass();
+            if (addCourseButtons) {
+                if (completed) {
+                    sel.addClass("text-success");
+                } else {
+                    let courseData = app.model.getCourseData(year, code);
+                    if (courseData === RETURN_CODES.DATA_NOT_FOUND.COURSE_MODEL) {
+                        sel.addClass(["text-secondary", "text-strikethrough"]);
+                    } else {
+                        if (courseData.sessions.includes(session)) {
+                            sel.addClass("text-primary");
+                            $(e).after(`<button class='btn btn-outline-primary btn-sm ml-2' data-action='add-course-plan'>Select</button>`);
+                        } else {
+                            sel.addClass("text-secondary");
+                        }
+                    }
+                }
+            } else {
+                if (completed) {
+                    sel.addClass("text-success");
+                } else {
+                    sel.addClass("text-danger");
+                }
+            }
+        });
     }
 
     getUnitSummaryHTML(data) {
-        // returns HTML data for code and session summary tables
+        return {
+          codes: generateHtmlTable(data.codes, "Level", true, true, (a,b) => {
+              let aCnt = 0;
+              let bCnt = 0;
+              for (let level of Object.keys(data.codes)) {
+                  if (data.codes[level].hasOwnProperty(a)) {
+                      aCnt += data.codes[level][a];
+                  }
+                  if (data.codes[level].hasOwnProperty(b)) {
+                      bCnt += data.codes[level][b];
+                  }
+              }
+              return bCnt - aCnt;
+          }),
+          sessions: generateHtmlTable(data.sessions, "Year", true, true, (a,b) => {
+              return DEFAULT_SESSION_ORDER.indexOf(a) - DEFAULT_SESSION_ORDER.indexOf(b);
+          })
+        };
+
     }
 
     updateGPAFields(selector, value) {
@@ -1228,7 +1375,16 @@ class View {
     }
 
     loadViewFromSave(data) {
-        
+        data.years.forEach((year) => {
+            this.addYear(year.name);
+            year.sessions.forEach((session) => {
+                this.addSession(year.name, session.name);
+                session.courses.forEach((course) => {
+                   app.view.addCourse(year.name, session.name, course.code);
+                });
+            });
+        });
+        this.showTab(data.years[0].name);
     }
 
     showLocalStorageError(errorMessage) {
@@ -1237,6 +1393,16 @@ class View {
         $('.localStorageErrorHide').addClass("d-none");
         $('#getStartedAlert').alert('close');
         $('#mobileAlert').alert('close');
+    }
+
+    getCodeListForYear(year) {
+        let dataSource = app.model.getYearDataSource(year);
+        let codeList = app.model.data.courses[dataSource].map((course) => {
+            return course.c.substr(0,4);
+        });
+        return [...new Set(codeList)].map((code) => {
+           return {value: code, text: code};
+        });
     }
 
 }
@@ -1298,58 +1464,234 @@ class Controller {
     registerEvents() {
         let v = this.view.page;
 
-        v.nav.addYear.click(() => {
-            console.log("adding year");
-        });
-
-        v.nav.gpa.click((e) => {
+        v.nav.gpa.click(() => {
             console.log("gpa button");
         });
-        v.nav.import.click(async (e) => {
+        v.nav.import.click(() => {
             console.log("import");
         });
-        v.nav.plan.click((e) => {
+        v.nav.plan.click(() => {
             console.log("plan");
         });
-        v.nav.saveCSV.click((e) => {
+        v.nav.saveCSV.click(() => {
             console.log("save csv");
         });
-        v.nav.savePdf.click((e) => {
+        v.nav.savePdf.click(() => {
             console.log("save csv");
         });
-        v.nav.reset.click((e) => {
+        v.nav.reset.click(() => {
             console.log("resetting");
         });
-
-        v.nav.unitSummary.click((e) => {
-            console.log("unit summary");
+        v.nav.unitSummary.click(() => {
+            let tables = app.view.getUnitSummaryHTML(app.model.getDataSummary());
+            v.modals.summary.codes.html(tables.codes);
+            v.modals.summary.sessions.html(tables.sessions);
+            v.modals.summary.id.modal();
         });
 
+        v.nav.addYear.click((event) => {
+            let beforeCallback = (e) => {
+                let currentYears = app.model.getCurrentYears();
+                setInputOptions(
+                    v.modals.year.select,
+                    app.model.getNewYearOptions(),
+                    currentYears.indexOf(CURRENT_YEAR) === -1 ? CURRENT_YEAR : (parseInt(currentYears.pop())+1).toString(),
+                    false);
+            };
 
-
-
-        $(document).on('click', '[data-action=remove-year]', (e) => {
-            console.log("removing year");
+            let yesCallback = (e) => {
+                let newYear = v.modals.year.select.val();
+                if (newYear != null) {
+                    if (app.model.getYearIndex(newYear) < 0) {
+                        app.model.addYear(newYear);
+                        app.view.addYear(newYear);
+                    }
+                    app.view.showTab(newYear);
+                }
+            };
+            this.view.showModal(v.modals.year.id, beforeCallback, yesCallback, ()=>{}, event);
         });
 
-        $(document).on('click', '[data-action=add-session]', (e) => {
-            console.log("adding session");
+        $(document).on('click', '[data-action=remove-year]', (event) => {
+            let year = $(event.target).closest('div[data-role=year-container]').attr('data-year');
+            if (!app.model.isYearEmpty(year)) {
+                if (!confirm(`Warning: ${year} has session/s in it.\nAre you sure you want to delete it?`)) {
+                    return
+                }
+            }
+            app.model.removeYear(year);
+            app.view.removeYear(year);
         });
 
-        $(document).on('click', '[data-action=remove-session]', (e) => {
-            console.log('removing session');
+        $(document).on('click', '[data-action=add-session]', (event) => {
+            let data = {
+                year: $(event.target).closest('div[data-role=year-container]').attr('data-year'),
+            };
+            let beforeCallback = (e, context) => {
+                setInputOptions(v.modals.session.select, app.model.getNewSessionOptions(context.year), null, false);
+            };
+
+            let yesCallback = (e, context) => {
+                let newSession = v.modals.session.select.val();
+                if (newSession != null) {
+                    if (app.model.getSessionIndex(context.year, newSession) < 0) {
+                        app.model.addSession(context.year, newSession);
+                        app.view.addSession(context.year, newSession);
+                    }
+                }
+            };
+
+            this.view.showModal(v.modals.session.id, beforeCallback, yesCallback, ()=>{}, event, data);
         });
 
-        $(document).on('click', '[data-action=add-course]', (e) => {
-           console.log("adding course");
+        $(document).on('click', '[data-action=remove-session]', (event) => {
+            let year = $(event.target).closest('div[data-role=year-container]').attr('data-year');
+            let session = $(event.target).closest('div[data-role=session]').attr('data-session');
+            if (!app.model.isSessionEmpty(year, session)) {
+                if (!confirm(`Warning: ${session} in ${year} has courses selected.\nAre you sure you want to delete it?`)) {
+                    return
+                }
+            }
+            app.model.removeSession(year, session);
+            app.view.removeSession(year, session);
+        });
+
+        $(document).on('click', '[data-action=add-course]', (event) => {
+            let data = {
+                session: $(event.target).closest('div[data-role=session]').attr('data-session'),
+                year: $(event.target).closest('div[data-role=year-container]').attr('data-year'),
+            };
+            app.currentYear = data.year;
+            app.currentSession = data.session;
+            data.dataSource = app.model.getYearDataSource(data.year);
+            let beforeCallback = (e, context) => {
+                let m = v.modals.course;
+
+                m.search.requirements.find('span').html(""); // clear requirements text
+                m.search.sessions[0].selectize.clear(true); // clear sessions
+                m.search.sessions[0].selectize.addItem(context.session); // add current session
+                m.search.codes[0].selectize.clearOptions();
+                m.search.codes[0].selectize.addOption(app.view.getCodeListForYear(context.year));
+                context.year > END_YEAR_DATA ? m.dataWarning.removeClass('d-none') : m.dataWarning.addClass('d-none');
+                let currentYears = app.model.getCurrentYears();
+                let years = currentYears.length === 0 ?
+                    YEAR_LIST.filter((year) => {return year <= END_YEAR_DATA}) :
+                    currentYears.filter((year) => {return year <= END_YEAR_DATA});
+                setInputOptions(m.plan.year, years, null);
+                m.plan.search[0].selectize.clearOptions();
+                m.plan.search[0].selectize.addOption(app.model.getSearchItemsForPlans(m.plan.year.val()));
+                app.view.checkRequirements(
+                    m.plan.requirementsText,
+                    this.currentYear,
+                    this.currentSession,
+                    true
+                );
+            };
+
+            let yesCallback = (e, context) => {
+                let m = v.modals.course;
+                let newCourse = m.planActive() ? m.plan.code.html() : m.search.course[0].selectize.items[0];
+                console.log(newCourse);
+                if (newCourse != null) {
+                    app.model.addCourse(context.year, context.session, newCourse);
+                    app.view.addCourse(context.year, context.session, newCourse);
+                    m.search.course[0].selectize.clear(true);
+                }
+            };
+
+            this.view.showModal(v.modals.course.id, beforeCallback, yesCallback, ()=>{}, event, data);
+        });
+
+        let filterCourses = () => {
+            let m = v.modals.course;
+            m.search.course[0].selectize.clearOptions();
+            m.search.course[0].selectize.clear(true);
+            m.search.course[0].selectize.addOption(app.model.getSearchItemsForCourses(
+                app.currentYear,
+                m.search.sessions[0].selectize.items,
+                m.search.codes[0].selectize.items,
+                m.search.career[0].selectize.items,
+            ));
+        };
+        v.modals.course.search.sessions.on('change', filterCourses);
+        v.modals.course.search.codes.on('change', filterCourses);
+        v.modals.course.search.career.on('change', filterCourses);
+
+        let displayCourseRequirements = async () => {
+          let m = v.modals.course.search;
+          m.requirements.find("span").html("");
+          m.requirements.addClass("d-none");
+          m.spinner.removeClass("d-none");
+          let dataSource = app.model.getYearDataSource(this.currentYear);
+          let course = v.modals.course.search.course[0].selectize.items[0];
+          let response = await getCourseRequirements(dataSource, course);
+          m.requirements.find("span").html(response);
+          app.view.checkRequirements(m.requirements.find('span'), this.currentYear, this.currentSession, false);
+          m.spinner.addClass("d-none");
+          m.requirements.removeClass("d-none");
+        };
+        v.modals.course.search.course[0].selectize.on('item_add', displayCourseRequirements);
+
+        let displayPlanRequirements = async () => {
+            let m = v.modals.course.plan;
+            let year = app.model.getYearDataSource(m.year.val());
+            let code = m.search[0].selectize.items[0];
+            let type = "";
+            if ((code.slice(code.length-3)) === "MAJ") {
+                type = "Major";
+            } else if ((code.slice(code.length-3) === "MIN")) {
+                type = "Minor";
+            } else {
+                type = "Program";
+            }
+            m.textContainer.addClass("d-none");
+            m.spinner.removeClass("d-none");
+            let response = "";
+            let planIndex = app.model.getPlanIndex(year, code);
+            if (planIndex >= 0) {
+                response = app.model.getCachedPlan(year, code).html;
+            } else {
+                response = await getPlanRequirements(year, code, type);
+                app.model.setPlanCache(year, code, type, response, true);
+            }
+            m.textContainer.removeClass("d-none");
+            m.spinner.addClass("d-none");
+            m.requirementsText.html(response);
+            app.view.checkRequirements(m.requirementsText, this.currentYear, this.currentSession, true);
+        };
+
+        v.modals.course.plan.search[0].selectize.on('item_add', displayPlanRequirements);
+        v.modals.course.plan.search[0].selectize.on('dropdown_open', (e) => {
+            v.modals.course.plan.courseRequirements.textContainer.addClass("d-none");
+            v.modals.course.plan.search[0].selectize.clear(true);
+            v.modals.course.plan.search[0].selectize.clearOptions();
+            v.modals.course.plan.search[0].selectize.addOption(app.model.getSearchItemsForPlans(v.modals.course.plan.year.val()));
+        });
+
+        $(document).on('click', 'button[data-action=add-course-plan]', async (e) => {
+            let r = v.modals.course.plan;
+            let code = $(e.target).siblings('a[data-coursecode]').attr('data-coursecode');
+            let year = app.model.getYearDataSource(this.currentYear);
+            r.courseRequirements.text.html("");
+            r.courseRequirements.textContainer.addClass("d-none");
+            r.courseRequirements.spinner.removeClass("d-none");
+            r.courseRequirements.code.text(code);
+            r.code.html(code);
+            let response = "";
+            try {
+                response = await getCourseRequirements(year, code);
+            } catch (e) {
+                response = e;
+            }
+            r.courseRequirements.text.html(response);
+            app.view.checkRequirements(r.courseRequirements.text, this.currentYear, this.currentSession, false);
+            r.courseRequirements.spinner.addClass("d-none");
+            r.courseRequirements.textContainer.removeClass("d-none");
         });
 
         $(document).on('click', '[data-action=remove-course]', (e) => {
-            console.log("removing course");
+
         });
-
-
-
 
 
 

@@ -383,10 +383,58 @@ function getCourseRequirements(year, code) {
         });
 }
 
-async function testAjax(year, code, type) {
-    let response = await getPlanRequirements(year, code, type);
-    console.log(response);
+function cleanHeaders(strArr) {
+    if (strArr[0] === "    Semester / Session") {
+        return _.rest(strArr, 9);
+    } else {
+        return strArr;
+    }
 }
+
+function isCourseCode(str) {
+    return /^([A-Z]{4}[0-9]{4})$/.test(str);
+}
+
+function isSessionYear(str) {
+    let arr = str.split(", ");
+    return DEFAULT_SESSION_ORDER.includes(arr[0]) && /^(20[0-9]{2})$/.test(arr[1]) && arr.length === 2;
+}
+
+function getSessionYear(str) {
+    return str.split(", ")
+}
+
+function isMark(str) {
+    return /^([0-9]{1,2})$|^100$/.test(str);
+}
+
+function filterISISInput(strArr) {
+    return _.filter(strArr, (str) => {
+        return isSessionYear(str) || isMark(str) || isCourseCode(str) && str !== ""
+    });
+}
+
+function parseISISImport(input) {
+    let rtn = {valid: true, results: []};
+    let data = filterISISInput(input.split("\n"));
+    for (let i = 0; i < data.length; i++) {
+        if (isSessionYear(data[i])) {
+            let sessionYear = getSessionYear(data[i]);
+            let code = data[i+1];
+            if (!isCourseCode(code)) {
+                rtn.valid = false;
+                break;
+            }
+            let mark = null;
+            if (!isSessionYear(data[i+2])) {
+                mark = data[i+2];
+            }
+            rtn.results.push({year: sessionYear[1], session: sessionYear[0], code: code, mark: mark});
+        }
+    }
+    return rtn;
+}
+
 
 /*********************************
     DATA TYPE DECLARATIONS
@@ -482,7 +530,7 @@ class Model {
      */
     addYear(year, dataSource=this.getYearDataSource(year)) {
         if (this.getYearIndex(year) === RETURN_CODES.NOT_EXISTS.YEAR) {
-            this._evalAndCommit(this.store.years.push(Year(year, dataSource)) -1);
+            return this._evalAndCommit(this.store.years.push(Year(year, dataSource)) -1);
             /*let rtn = this.store.years.push(Year(year, dataSource)) -1;
             this._commit();
             return rtn;*/
@@ -1260,7 +1308,14 @@ class View {
                     spinner: $('#requirementsModalSpinner'),
                     search: $('#requirementsModalSearch').selectize(this.settings.planSelectize),
                 },
-                import: {},
+                import: {
+                    id: $('#importModal'),
+                    input: $('#importInput'),
+                    table: $('#importTable'),
+                    submit: $('#importSubmit'),
+                    overwrite: () => {return $('#importOptionOverwrite').is(':checked')},
+                    currentData: [],
+                },
                 gpa: {
                     id: $('#gpaModal'),
                     wam: {
@@ -1288,7 +1343,7 @@ class View {
                             semesters: $('#gpaModalGoalSemesters'),
                             submit: $('#gpaModalGoalSubmit'),
                             results: $('#gpaModalGoalResults'),
-                            resultGPA: $('#gpaModalGoalResultGpa')
+                            resultGPA: $('#gpaModalGoalResultGpa'),
                         }
                     }
                 },
@@ -1555,6 +1610,13 @@ class View {
         });
     }
 
+    renderImportResultsTable(data) {
+        data.forEach(course => {
+            $('#importTable > tbody').append(`<tr><td>${course.year}</td><td>${course.session}</td>` +
+                                            `<td>${course.code}</td><td>${course.mark === null ? "" : course.mark}</td></tr>`);
+        });
+    }
+
 }
 
 class Controller {
@@ -1733,7 +1795,30 @@ class Controller {
         });
 
         v.nav.import.click(() => {
-            console.log("import");
+            v.modals.import.id.modal();
+        });
+
+        v.modals.import.input.on('input change', () => {
+            let i = v.modals.import;
+            let data = parseISISImport(i.input.val());
+            if (data.valid && data.results.length !== 0) {
+                i.input.removeClass("is-invalid");
+                i.submit.attr("disabled", false);
+                app.view.renderImportResultsTable(data.results);
+                i.currentData = data.results;
+            } else {
+                i.input.addClass("is-invalid");
+                i.submit.attr("disabled", true);
+                i.currentData = [];
+            }
+        });
+
+        v.modals.import.submit.click(() => {
+            let i = v.modals.import;
+            i.currentData.forEach(course => {
+                app.model.addCourse(course.year, course.session, course.code, true, course.mark);
+            });
+            app.view.loadViewFromSave(app.model.store);
         });
         
         v.nav.plan.click(() => {

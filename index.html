@@ -792,6 +792,64 @@
     </div>
 </div>
 
+<div class="modal" tabindex="-1" role="dialog" id="importModal">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Import from ISIS</h5>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-7">
+                        <p>
+                            To import your courses and marks from ISIS, go to <strong>Academic History</strong>,
+                            click on the details and copy in the contents of the table with your previous courses,
+                            marks and grades as shown on the right.
+                        </p>
+                        <div class="form-group row mt-4">
+                            <label class="col-4">Import options</label>
+                            <div class="col-8">
+                                <div class="custom-control custom-checkbox custom-control-inline">
+                                    <input name="importOptionOverwrite" id="importOptionOverwrite" type="checkbox" checked="checked" class="custom-control-input" value="">
+                                    <label for="importOptionOverwriteTable" class="custom-control-label">Overwrite current courses</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-5">
+                        <a href="img/isis_table.png"><img src="img/isis_table.png" class="img-fluid" alt=""/></a>
+                    </div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-6">
+                        <label>
+                            <strong>Copy your academic history here:</strong>
+                            <textarea id="importInput" style="resize:none" rows="5" cols="40" class="form-control" placeholder="Copy into here..."></textarea>
+                        </label>
+                    </div>
+                    <div class="col-6" style="overflow-y: auto; max-height: 200px;">
+                        <table id="importTable" class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Year</th>
+                                    <th scope="col">Semester</th>
+                                    <th scope="col">Code</th>
+                                    <th scope="col">Mark</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="importSubmit" type="button" class="btn btn-outline-primary" data-action="modal-yes" disabled="disabled" data-dismiss="modal">Import</button>
+                <button type="button" class="btn btn-outline-secondary" data-action="modal-no" data-dismiss="modal">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!--TEMPLATES-->
 <script type="text/html" id="year-tab-content-template">
     <div class="tab-pane fade" id="year-{{year}}-tab" data-year="{{year}}" data-role="year-container" role="tabpanel">

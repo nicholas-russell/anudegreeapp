@@ -1839,6 +1839,7 @@ class Controller {
                 "Summer Session",
                 false
             );
+            r.search[0].selectize.addOption(app.model.getSearchItemsForPlans(r.year.val()));
             r.id.modal();
         });
 
@@ -1869,6 +1870,7 @@ class Controller {
             r.text.html(response);
             app.view.checkRequirements(r.text, "9999", "Summer Session" , false);
         });
+
         v.modals.requirements.search[0].selectize.on('dropdown_open', () => {
             v.modals.requirements.search[0].selectize.clear(true);
             v.modals.requirements.search[0].selectize.clearOptions();

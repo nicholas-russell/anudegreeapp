@@ -383,14 +383,6 @@ function getCourseRequirements(year, code) {
         });
 }
 
-function cleanHeaders(strArr) {
-    if (strArr[0] === "    Semester / Session") {
-        return _.rest(strArr, 9);
-    } else {
-        return strArr;
-    }
-}
-
 function isCourseCode(str) {
     return /^([A-Z]{4}[0-9]{4})$/.test(str);
 }
@@ -426,7 +418,7 @@ function parseISISImport(input) {
                 break;
             }
             let mark = null;
-            if (!isSessionYear(data[i+2])) {
+            if (i+2 < data.length && !isSessionYear(data[i+2])) {
                 mark = data[i+2];
             }
             rtn.results.push({year: sessionYear[1], session: sessionYear[0], code: code, mark: mark});
@@ -1798,9 +1790,11 @@ class Controller {
             v.modals.import.id.modal();
         });
 
-        v.modals.import.input.on('input change', () => {
+        v.modals.import.input.on('input', () => {
             let i = v.modals.import;
+            i.table.find("tbody").html("");
             let data = parseISISImport(i.input.val());
+            console.log(data);
             if (data.valid && data.results.length !== 0) {
                 i.input.removeClass("is-invalid");
                 i.submit.attr("disabled", false);
@@ -1815,10 +1809,20 @@ class Controller {
 
         v.modals.import.submit.click(() => {
             let i = v.modals.import;
+            i.input.val("");
+            i.table.find("tbody").html("");
+            i.submit.attr("disabled", true);
             i.currentData.forEach(course => {
                 app.model.addCourse(course.year, course.session, course.code, true, course.mark);
             });
+            app.model.sortStore();
+            let years = app.model.getCurrentYears();
+            years.forEach((year) => {
+                app.view.removeYear(year);
+            });
             app.view.loadViewFromSave(app.model.store);
+            i.currentData = [];
+
         });
         
         v.nav.plan.click(() => {

@@ -2133,6 +2133,13 @@ class Controller {
         });
 
 
+        $('#getStartedImport').click(() => {
+            v.nav.import.trigger("click");
+        });
+
+        $('#getStartedAddYear').click(() => {
+            v.nav.addYear.trigger("click");
+        });
 
     }
 }

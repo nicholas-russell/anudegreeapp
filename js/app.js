@@ -1773,7 +1773,6 @@ class Controller {
         });
 
         v.modals.gpa.gpa.input.on('change input', (e) => {
-            console.log("triggered");
             let sel = $(e.target);
             let val = sel.val();
             if (val % 1 !== 0) {
@@ -1795,7 +1794,6 @@ class Controller {
             let i = v.modals.import;
             i.table.find("tbody").html("");
             let data = parseISISImport(i.input.val());
-            console.log(data);
             if (data.valid && data.results.length !== 0) {
                 i.input.removeClass("is-invalid");
                 i.submit.attr("disabled", false);
@@ -1903,8 +1901,8 @@ class Controller {
             if (confirm("Are you sure you want to reset your data?")) {
                 let years = app.model.getCurrentYears();
                 years.forEach((year) => {
-                   console.log(app.view.removeYear(year));
-                   console.log(app.model.removeYear(year));
+                   app.view.removeYear(year);
+                   app.model.removeYear(year);
                 });
             }
         });
@@ -2020,7 +2018,6 @@ class Controller {
             let yesCallback = (e, context) => {
                 let m = v.modals.course;
                 let newCourse = m.planActive() ? m.plan.code.html() : m.search.course[0].selectize.items[0];
-                console.log(newCourse);
                 if (newCourse != null) {
                     let code = app.model.addCourse(context.year, context.session, newCourse);
                     if (code >= 0) {
@@ -2125,8 +2122,8 @@ class Controller {
         $(document).on('click', '[data-action=remove-course]', (e) => {
             let row = $(e.target).closest("tr[data-role=course-row]");
             app.view.removeCourse(row.data('year'), row.data('session'), row.data('course'));
-            console.log(row.data('year') + row.data('session') + row.data('course'));
-            console.log(app.model.removeCourse(row.data('year'), row.data('session'), row.data('course')));
+            row.data('year') + row.data('session') + row.data('course');
+            app.model.removeCourse(row.data('year'), row.data('session'), row.data('course'));
         });
 
 

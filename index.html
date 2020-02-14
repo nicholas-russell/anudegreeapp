@@ -93,8 +93,8 @@
 <div class="container">
     <div class="row d-block d-md-none mt-3 mt-md-0 mb-0">
         <div class="col">
-            <div class="alert alert-danger alert-dismissible fade show" role="alert" id="mobileAlert">
-                <p><strong>Warning</strong> This site is not intended to be used on mobile devices/small screens. It is best used on a PC/Mac on Google Chrome.</p>
+            <div class="alert alert-warning mb-0 alert-dismissible fade show" role="alert" id="mobileAlert">
+                <strong>Warning</strong> This site is not intended to be used on mobile devices/small screens. It is best used on a PC/Mac on Google Chrome.
                 <button type="button" class="close" data-dismiss="alert" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>
@@ -680,7 +680,6 @@
     </div>
 </div>
 
-
 <div class="modal" tabindex="-1" role="dialog" id="jsonLoadModal">
     <div class="modal-dialog modal" role="document">
         <div class="modal-content">
@@ -800,7 +799,7 @@
             </div>
             <div class="modal-body">
                 <div class="row">
-                    <div class="col-7">
+                    <div class="col-sm-7">
                         <p>
                             To import your courses and marks from ISIS, go to <strong>Academic History</strong>,
                             click on the details and copy in the contents of the table with your previous courses,
@@ -816,18 +815,18 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-5">
+                    <div class="col-sm-5">
                         <a href="img/isis_table.png"><img src="img/isis_table.png" class="img-fluid" alt=""/></a>
                     </div>
                 </div>
                 <div class="row mt-2">
-                    <div class="col-6">
+                    <div class="col-sm-6">
                         <label>
                             <strong>Copy your academic history here:</strong>
                             <textarea id="importInput" style="resize:none" rows="5" cols="40" class="form-control" placeholder="Copy into here..."></textarea>
                         </label>
                     </div>
-                    <div class="col-6" style="overflow-y: auto; max-height: 200px;">
+                    <div class="col-sm-6" style="overflow-y: auto; max-height: 200px;">
                         <table id="importTable" class="table table-sm">
                             <thead>
                                 <tr>

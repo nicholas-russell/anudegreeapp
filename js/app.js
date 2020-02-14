@@ -1373,7 +1373,10 @@ class View {
     }
 
     showTab(year) {
-        this.page.tmpl.year.sel(year).tab('show');
+        let tab = this.page.tmpl.year.sel(year);
+        let content = this.page.tmpl.yearTab.sel(year);
+        tab.tab('show');
+        //sel.addClass("active");
     }
 
     addSession(year, session) {
@@ -1811,17 +1814,20 @@ class Controller {
             i.input.val("");
             i.table.find("tbody").html("");
             i.submit.attr("disabled", true);
-            i.currentData.forEach(course => {
-                app.model.addCourse(course.year, course.session, course.code, true, course.mark);
-            });
-            app.model.sortStore();
             let years = app.model.getCurrentYears();
             years.forEach((year) => {
                 app.view.removeYear(year);
             });
+            i.currentData.forEach(course => {
+                let code = app.model.addCourse(course.year, course.session, course.code, true, course.mark);
+                if (code === RETURN_CODES.EXISTS_ALREADY.COURSE) {
+                    app.model.setMarkForCourse(course.year, course.session, course.code, course.mark);
+                }
+            });
+            app.model.sortStore();
             app.view.loadViewFromSave(app.model.store);
             i.currentData = [];
-
+            i.id.modal('hide');
         });
         
         v.nav.plan.click(() => {

@@ -932,8 +932,8 @@ class Model {
         let rtn = false;
         for (let yearSearch of this.store.years) {
             let sessionArr = _.filter(yearSearch.sessions, (sessionIterable) => {
-               return (yearSearch.name < year)
-                        || ((yearSearch.name === year)
+                return (yearSearch.name < year)
+                    || ((yearSearch.name === year)
                         && (_.indexOf(TIME_SESSION_ORDER, session) >= _.indexOf(TIME_SESSION_ORDER, sessionIterable.name)))
             });
             for (let sessionSearch of sessionArr) {
@@ -1053,6 +1053,7 @@ class Model {
                 &&      (careers.includes(c.l) || careers.length === 0);
         });
     }
+
 
     /**
      * Caches a plan into the store.
@@ -2021,8 +2022,12 @@ class Controller {
                 let newCourse = m.planActive() ? m.plan.code.html() : m.search.course[0].selectize.items[0];
                 console.log(newCourse);
                 if (newCourse != null) {
-                    app.model.addCourse(context.year, context.session, newCourse);
-                    app.view.addCourse(context.year, context.session, newCourse);
+                    let code = app.model.addCourse(context.year, context.session, newCourse);
+                    if (code >= 0) {
+                        app.view.addCourse(context.year, context.session, newCourse);
+                    } else {
+                        alert(`${newCourse} is already in this session!`)
+                    }
                     m.search.course[0].selectize.clear(true);
                 }
             };
